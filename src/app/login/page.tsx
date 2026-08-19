@@ -23,7 +23,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
   const errorKey = typeof params.error === "string" ? params.error : null;
 
   return (
-    <AuthCard title="Welcome back" subtitle="Sign in to your CAS portal">
+    <AuthCard title="Welcome back" subtitle="Sign in to the CAS portal">
       {errorKey && (
         <p className="mb-4 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
           {ERRORS[errorKey] ?? "Something went wrong. Please try again."}

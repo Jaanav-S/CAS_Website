@@ -1,43 +1,36 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7fb;
-  --surface: #ffffff;
-  --surface-2: #f1f3f9;
-  --foreground: #16181d;
-  --muted: #5f6572;
-  --border: #e2e5ee;
-  --brand: #2f6f5e;
-  --brand-strong: #245648;
-  --brand-soft: #e6f2ee;
-  --accent: #b4531f;
-  --accent-soft: #fbeee5;
-  --danger: #b3261e;
-  --danger-soft: #fbe9e8;
-  --info: #2f5aa8;
-  --info-soft: #e8eefb;
-  --shadow: 0 1px 2px rgb(16 24 40 / 0.05), 0 8px 24px -12px rgb(16 24 40 / 0.18);
-}
+  /* The portal is light-only: a dark UI reads as a developer tool, not a
+     school. Declaring the scheme also keeps native form controls light. */
+  color-scheme: light;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1116;
-    --surface: #171a21;
-    --surface-2: #1e222b;
-    --foreground: #e9ebf0;
-    --muted: #9aa1b1;
-    --border: #2a2f3a;
-    --brand: #5fb79c;
-    --brand-strong: #7ecfb4;
-    --brand-soft: #17302a;
-    --accent: #e08a52;
-    --accent-soft: #2e2117;
-    --danger: #f2938c;
-    --danger-soft: #331b1a;
-    --info: #8fb3f2;
-    --info-soft: #171f2e;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
-  }
+  --background: #faf8f4;
+  --surface: #ffffff;
+  --surface-2: #f3f0e8;
+  --foreground: #1f2420;
+  --muted: #6b6a63;
+  --border: #ddd6c6;
+
+  --brand: #1f5138;
+  --brand-strong: #163b28;
+  --brand-soft: #e7efe9;
+
+  --accent: #9a4708;
+  --accent-soft: #fbf0e1;
+
+  --danger: #a32b22;
+  --danger-soft: #f9eae7;
+
+  --info: #35566e;
+  --info-soft: #eaf0f4;
+
+  /* Warm, shallow shadows — paper lifted slightly, not glass floating. */
+  --shadow: 0 1px 2px rgb(31 36 32 / 0.04), 0 8px 20px -14px rgb(31 36 32 / 0.28);
+
+  /* next/font self-hosts Source Serif; Georgia carries it if that fails. */
+  --font-serif: var(--font-serif-loaded, Georgia), Georgia, "Times New Roman",
+    serif;
 }
 
 @theme inline {
@@ -56,6 +49,7 @@
   --color-danger-soft: var(--danger-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --font-serif: var(--font-serif);
 }
 
 * {
@@ -68,6 +62,20 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Serif headings are what make software read as a school rather than a
+ * dashboard. The small uppercase eyebrow labels stay in the sans face — they
+ * are signposts, not titles — hence the :not(.uppercase).
+ */
+h1,
+h2:not(.uppercase),
+h3:not(.uppercase),
+.prose-blog h2,
+.prose-blog h3 {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
 }
 
 /* ---------- primitives ---------- */
@@ -152,12 +160,6 @@ body {
 
 .btn-primary:hover:not(:disabled) {
   background: var(--brand-strong);
-}
-
-@media (prefers-color-scheme: dark) {
-  .btn-primary {
-    color: #08130f;
-  }
 }
 
 .btn-ghost {
@@ -249,13 +251,13 @@ body {
 /* Safely stored: green, with a soft halo that settles in. */
 .save-dot-saved {
   background: var(--brand);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--brand) 14%, transparent);
   animation: save-settle 0.4s ease-out;
 }
 
 .save-dot-error {
   background: var(--danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 22%, transparent);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
 @keyframes save-pulse {
@@ -272,8 +274,8 @@ body {
 
 @keyframes save-settle {
   from {
-    transform: scale(1.6);
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 45%, transparent);
+    transform: scale(1.5);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 30%, transparent);
   }
   to {
     transform: scale(1);

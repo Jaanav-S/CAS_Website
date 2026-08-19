@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { SessionUser } from "@/lib/auth";
-import { ROLE_LABELS } from "@/lib/constants";
+import { ROLE_LABELS, SCHOOL_NAME } from "@/lib/constants";
 import { LogoutButton, NavLinks, type NavItem } from "@/components/Nav";
 
 const NAV: Record<SessionUser["role"], NavItem[]> = {
@@ -40,14 +40,19 @@ export function Shell({
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b bg-surface/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2 font-bold">
+          <Link href="/" className="flex items-center gap-2.5">
             <span
               aria-hidden
-              className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-sm text-white"
+              className="grid h-9 w-9 place-items-center rounded-lg bg-brand text-xs font-bold tracking-wide text-white"
             >
-              CAS
+              FS
             </span>
-            <span className="hidden sm:inline">CAS Portal</span>
+            <span className="hidden leading-tight sm:block">
+              <span className="block font-serif text-base font-semibold">
+                {SCHOOL_NAME}
+              </span>
+              <span className="block text-xs text-muted">CAS Portal</span>
+            </span>
           </Link>
 
           <NavLinks items={NAV[user.role]} />

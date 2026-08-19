@@ -315,6 +315,30 @@ scripts/              one-off migrations
 uploads/              runtime image uploads (gitignored)
 ```
 
+### Theme
+
+The palette lives entirely in CSS custom properties at the top of
+[`src/app/globals.css`](src/app/globals.css) — forest green on warm ivory, with
+amber, slate and brick as the supporting colours.
+
+It is **light only, on purpose**: `color-scheme: light` is declared and there is
+no `prefers-color-scheme` block, so a student whose laptop is in dark mode still
+gets the same light portal (and light native form controls). A dark UI reads as
+a developer tool rather than a school.
+
+Headings use Source Serif 4, self-hosted by `next/font` at build time so the
+school network never fetches it at runtime, with Georgia as the fallback. Small
+uppercase eyebrow labels deliberately stay in the sans face — the CSS targets
+`h2:not(.uppercase)`.
+
+**To rebrand**, change `--brand`, `--brand-strong` and `--brand-soft` in that
+one block; everything else follows. The school name is `SCHOOL_NAME` in
+[`src/lib/constants.ts`](src/lib/constants.ts).
+
+Contrast was checked against WCAG AA: body text 15.8:1 on cards, muted text
+5.4:1, white on the brand button 9.2:1, and every badge pairing at or above
+4.5:1.
+
 ### Notes on a few decisions
 
 - **Sessions** are a signed JWT in an httpOnly cookie. The cookie holds only a

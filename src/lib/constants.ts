@@ -3,6 +3,9 @@
  * Tweak REQUIREMENTS here if your school's thresholds differ.
  */
 
+/** Shown in the header, on the sign-in pages and in the browser tab. */
+export const SCHOOL_NAME = "Fountainhead School";
+
 export const STRANDS = ["Creativity", "Activity", "Service"] as const;
 export type Strand = (typeof STRANDS)[number];
 

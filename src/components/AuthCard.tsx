@@ -1,3 +1,5 @@
+import { SCHOOL_NAME } from "@/lib/constants";
+
 export function AuthCard({
   title,
   subtitle,
@@ -13,10 +15,11 @@ export function AuthCard({
         <div className="mb-6 text-center">
           <span
             aria-hidden
-            className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-brand font-bold text-white"
+            className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-brand text-sm font-bold tracking-wide text-white"
           >
-            CAS
+            FS
           </span>
+          <p className="mb-1 text-sm font-semibold text-brand">{SCHOOL_NAME}</p>
           <h1 className="text-2xl font-bold">{title}</h1>
           <p className="mt-1 text-sm text-muted">{subtitle}</p>
         </div>
