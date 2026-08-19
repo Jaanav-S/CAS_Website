@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { apiUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Experience } from "@/models/Experience";
-import { teacherSectionIds } from "@/lib/scope";
+import { User } from "@/models/User";
+import { canModerate } from "@/lib/scope";
 import { firstIssue, reviewSchema } from "@/lib/validation";
 
 /** Teachers approve or reject reflections from their own section. */
@@ -26,14 +27,20 @@ export async function POST(
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
-  if (user.role === "teacher") {
-    const sections = (await teacherSectionIds(user.id)).map(String);
-    if (!experience.section || !sections.includes(String(experience.section))) {
-      return NextResponse.json(
-        { error: "You can only review students in your own section." },
-        { status: 403 },
-      );
-    }
+  const author = await User.findById(experience.student).select("section").lean<{
+    section?: unknown;
+  }>();
+
+  const allowed = await canModerate(
+    user,
+    experience.section ? String(experience.section) : null,
+    author?.section ? String(author.section) : null,
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "You can only review students in your own section." },
+      { status: 403 },
+    );
   }
 
   const { action, comment } = parsed.data;

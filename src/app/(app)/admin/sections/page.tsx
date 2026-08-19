@@ -16,7 +16,7 @@ export default async function AdminSectionsPage() {
   const [sectionDocs, teacherDocs, memberCounts] = await Promise.all([
     Section.find()
       .populate("teachers", "name email")
-      .sort({ year: -1, name: 1 })
+      .sort({ dpYear: 1, year: -1, name: 1 })
       .lean(),
     User.find({ role: "teacher", status: "approved" })
       .select("name email")

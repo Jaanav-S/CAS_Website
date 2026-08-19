@@ -3,16 +3,27 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 
+export type UploadedSize = { width: number; height: number };
+
 type Props = {
   value: string | null;
-  onChange: (url: string | null) => void;
+  onChange: (url: string | null, size?: UploadedSize) => void;
   label: string;
   hint?: string;
   required?: boolean;
+  /** Show the image at its own aspect ratio rather than cropping it. */
+  preserveAspect?: boolean;
 };
 
 /** Uploads one image to /api/upload and reports back its public URL. */
-export function ImageUploader({ value, onChange, label, hint, required }: Props) {
+export function ImageUploader({
+  value,
+  onChange,
+  label,
+  hint,
+  required,
+  preserveAspect = false,
+}: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -26,7 +37,7 @@ export function ImageUploader({ value, onChange, label, hint, required }: Props)
       const res = await fetch("/api/upload", { method: "POST", body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload failed.");
-      onChange(data.url);
+      onChange(data.url, { width: data.width, height: data.height });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
@@ -43,13 +54,17 @@ export function ImageUploader({ value, onChange, label, hint, required }: Props)
       </span>
 
       {value ? (
-        <div className="relative overflow-hidden rounded-lg border">
+        <div className="relative overflow-hidden rounded-lg border bg-surface-2">
           <Image
             src={value}
             alt=""
             width={1200}
             height={640}
-            className="h-48 w-full object-cover"
+            className={
+              preserveAspect
+                ? "mx-auto max-h-80 w-auto max-w-full object-contain"
+                : "h-48 w-full object-cover"
+            }
             unoptimized
           />
           <button

@@ -10,6 +10,7 @@ export default async function EditExperiencePage(
   props: PageProps<"/experiences/[id]/edit">,
 ) {
   const user = await requireRole("student");
+  if (user.graduated) redirect("/my-cas");
   const { id } = await props.params;
   const experience = await experienceDetail(id);
 
@@ -64,6 +65,8 @@ export default async function EditExperiencePage(
           blogTitle: experience.blogTitle ?? "",
           blogBody: experience.blogBody ?? "",
           headerImage: experience.headerImage ?? null,
+          headerWidth: experience.headerWidth ?? null,
+          headerHeight: experience.headerHeight ?? null,
           images: experience.images ?? [],
         }}
       />

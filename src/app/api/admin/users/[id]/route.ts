@@ -13,6 +13,7 @@ const schema = z.object({
   status: z.enum(ACCOUNT_STATUSES).optional(),
   role: z.enum(ROLES).optional(),
   section: z.union([z.string().regex(/^[0-9a-fA-F]{24}$/), z.literal("")]).optional(),
+  graduated: z.boolean().optional(),
   rejectionReason: z.string().trim().max(500).optional(),
 });
 
@@ -45,18 +46,29 @@ export async function PATCH(
 
   if (parsed.data.status) user.status = parsed.data.status;
   if (parsed.data.role) user.role = parsed.data.role;
+  if (parsed.data.graduated !== undefined) user.graduated = parsed.data.graduated;
   if (parsed.data.rejectionReason !== undefined) {
     user.rejectionReason = parsed.data.rejectionReason;
   }
 
   if (parsed.data.section !== undefined) {
     const sectionId = parsed.data.section || null;
-    if (sectionId && !(await Section.findById(sectionId))) {
+    const section = sectionId ? await Section.findById(sectionId) : null;
+    if (sectionId && !section) {
       return NextResponse.json({ error: "Unknown section." }, { status: 400 });
     }
     user.section = sectionId ? new Types.ObjectId(sectionId) : null;
-    // Keep already-created experiences reviewable by the new section's teachers.
-    await Experience.updateMany({ student: user._id }, { section: sectionId });
+
+    // Moving a student on — DP1 to DP2, say — hands their *unfinished* work to
+    // the new section's teachers. Approved experiences keep the section and DP
+    // year they were earned under, so the record of what happened in DP1 stays
+    // accurate no matter how many times the student is moved afterwards.
+    if (user.role === "student") {
+      await Experience.updateMany(
+        { student: user._id, status: { $in: ["draft", "pending", "rejected"] } },
+        { section: sectionId, dpYear: section?.dpYear ?? null },
+      );
+    }
   }
 
   // Section.teachers is what actually grants review access, so putting a

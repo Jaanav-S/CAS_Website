@@ -107,6 +107,13 @@ optional. The body accepts a small amount of Markdown (`##` headings, `-`
 bullets, `>` quotes, `**bold**`, `*italic*`) and is rendered as React elements,
 so student text can never inject HTML.
 
+Header images keep whatever shape they were uploaded at — panorama, portrait,
+square — and are never cropped. The page caps them at 70% of the viewport
+height so a tall photo cannot push the writing off the screen. Uploads must be
+at least 200px on each side, no more than 10,000px or 40 megapixels, and under
+8 MB. The format is checked by reading the file's own header bytes, so renaming
+a `.zip` to `.png` will not get it in.
+
 Saving step 1 creates a draft. Nothing is sent for review until step 2 is
 complete and the student hits **Submit for review**.
 
@@ -149,6 +156,42 @@ Because drafts are saved continuously they are allowed to be incomplete: the
 proposal form's rules (title length, at least one strand, and so on) are
 enforced when the student submits, not while they type.
 
+### Discovery
+
+Every approved reflection is published to Discovery, filterable by **section**,
+**student** and **DP year**. The filters combine and live in the query string,
+so a filtered view can be linked to. Only values that actually have posts
+behind them appear in the dropdowns.
+
+### DP1 → DP2, and graduating
+
+An account belongs to a person for their whole time at the school, so the thing
+that changes as they progress is their **section**, not their identity.
+
+Each section is labelled `DP1` or `DP2`. When an experience is created it takes
+a snapshot of the section's DP year, which is why a DP1 reflection stays
+labelled DP1 forever, no matter how many times the student is moved afterwards.
+
+Moving a student into a DP2 section (Users → Section) is the promotion:
+
+| What                                     | Where it goes                              |
+| ---------------------------------------- | ------------------------------------------ |
+| Approved experiences                     | stay with the section they were earned in  |
+| Drafts, pending and sent-back work        | follow the student to the new section       |
+| Ownership of everything                   | unchanged — always the student              |
+| Progress towards the 8                    | counts across both years together           |
+
+So the DP2 teacher reviews everything the student submits from now on and sees
+their full record including DP1, while the DP1 teacher keeps their historical
+class. A published post can be moderated by either the teacher who was
+responsible when it was written or the student's current teacher.
+
+**Graduating.** Users → *Mark graduated*. A graduate keeps their account and can
+still sign in, read Discovery and look over their own record, but can no longer
+create, edit, submit or upload — the API refuses it and the buttons disappear.
+They also drop off their teacher's class overview. It is reversible with
+*Un-graduate*.
+
 ### Progress
 
 Progress is computed only from **approved** experiences:
@@ -181,6 +224,7 @@ src/
   lib/                auth, db, validation, progress, queries
   models/             Mongoose schemas: User, Section, Experience
   proxy.ts            redirects signed-out visitors to /login
+scripts/              one-off migrations
 uploads/              runtime image uploads (gitignored)
 ```
 
@@ -208,6 +252,14 @@ CDN.
 ---
 
 ## Scripts
+
+```bash
+node scripts/backfill-dp-year.mjs   # one-off, for databases predating DP years
+```
+
+Run that once if your database was created before sections had a DP year: it
+labels every unlabelled section `DP1` and stamps existing experiences from
+their section. It is safe to run more than once.
 
 ```bash
 npm run dev     # development server

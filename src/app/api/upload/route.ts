@@ -4,7 +4,9 @@ import { saveImage } from "@/lib/upload";
 
 export async function POST(request: NextRequest) {
   const user = await apiUser();
-  if (!user) return NextResponse.json({ error: "Not allowed." }, { status: 403 });
+  if (!user || (user.role === "student" && user.graduated)) {
+    return NextResponse.json({ error: "Not allowed." }, { status: 403 });
+  }
 
   const form = await request.formData();
   const file = form.get("file");
@@ -16,5 +18,9 @@ export async function POST(request: NextRequest) {
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
-  return NextResponse.json({ url: result.url });
+  return NextResponse.json({
+    url: result.url,
+    width: result.width,
+    height: result.height,
+  });
 }

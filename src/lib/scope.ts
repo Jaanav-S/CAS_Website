@@ -20,9 +20,20 @@ export async function teacherSectionIds(
 export async function canModerate(
   user: { id: string; role: string },
   experienceSectionId: string | null | undefined,
+  /** The student's section right now, which may have moved on since. */
+  studentSectionId?: string | null,
 ): Promise<boolean> {
   if (user.role === "admin") return true;
-  if (user.role !== "teacher" || !experienceSectionId) return false;
+  if (user.role !== "teacher") return false;
+
+  const candidates = [experienceSectionId, studentSectionId]
+    .filter(Boolean)
+    .map(String);
+  if (candidates.length === 0) return false;
+
+  // Either the teacher who was responsible when it was written, or the one
+  // responsible for the student now — a DP1 post stays moderatable by the DP1
+  // teacher, and the DP2 teacher can act on their current student too.
   const sections = (await teacherSectionIds(user.id)).map(String);
-  return sections.includes(String(experienceSectionId));
+  return candidates.some((id) => sections.includes(id));
 }

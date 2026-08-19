@@ -6,12 +6,14 @@ import { Section } from "@/models/Section";
 import { User } from "@/models/User";
 import { Experience } from "@/models/Experience";
 import { firstIssue } from "@/lib/validation";
+import { DP_YEARS } from "@/lib/constants";
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/);
 
 const schema = z.object({
   name: z.string().trim().min(1).optional(),
   year: z.string().trim().min(4).optional(),
+  dpYear: z.enum(DP_YEARS).optional(),
   teachers: z.array(objectId).optional(),
 });
 

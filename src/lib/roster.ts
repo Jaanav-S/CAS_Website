@@ -29,6 +29,7 @@ export async function roster(
   const students = await User.find({
     role: "student",
     status: "approved",
+    graduated: { $ne: true },
     section: { $in: sectionIds },
   })
     .select("name email image section")

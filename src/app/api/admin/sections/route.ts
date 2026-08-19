@@ -4,10 +4,13 @@ import { apiUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Section } from "@/models/Section";
 import { firstIssue } from "@/lib/validation";
+import { DP_YEARS } from "@/lib/constants";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Give the section a name, e.g. DP1-A."),
   year: z.string().trim().min(4, "Select a year."),
+  // Optional so existing callers keep working; DP1 is the sensible default.
+  dpYear: z.enum(DP_YEARS).default("DP1"),
 });
 
 export async function POST(request: NextRequest) {
@@ -20,7 +23,10 @@ export async function POST(request: NextRequest) {
   }
 
   await dbConnect();
-  const existing = await Section.findOne(parsed.data);
+  const existing = await Section.findOne({
+    name: parsed.data.name,
+    year: parsed.data.year,
+  });
   if (existing) {
     return NextResponse.json(
       { error: "That section already exists for this year." },

@@ -47,6 +47,8 @@ export type ExperienceFormValues = {
   blogTitle: string;
   blogBody: string;
   headerImage: string | null;
+  headerWidth: number | null;
+  headerHeight: number | null;
   images: string[];
 };
 
@@ -83,6 +85,8 @@ function emptyValues(years: string[]): ExperienceFormValues {
     blogTitle: "",
     blogBody: "",
     headerImage: null,
+    headerWidth: null,
+    headerHeight: null,
     images: [],
   };
 }
@@ -175,6 +179,8 @@ export function ExperienceForm({
     blogTitle: v.blogTitle,
     blogBody: v.blogBody,
     headerImage: v.headerImage ?? "",
+    headerWidth: v.headerWidth,
+    headerHeight: v.headerHeight,
     images: v.images,
   });
 
@@ -525,9 +531,17 @@ export function ExperienceForm({
           <ImageUploader
             label="Header image"
             required
-            hint="Required. This is the image shown on the Discovery feed."
+            preserveAspect
+            hint="Required. Any shape works — it keeps its own proportions. At least 200px on each side, up to 8 MB."
             value={values.headerImage}
-            onChange={(url) => set("headerImage", url)}
+            onChange={(url, size) =>
+              setValues((v) => ({
+                ...v,
+                headerImage: url,
+                headerWidth: size?.width ?? null,
+                headerHeight: size?.height ?? null,
+              }))
+            }
           />
 
           <Row label="Reflection title" required htmlFor="blogTitle">

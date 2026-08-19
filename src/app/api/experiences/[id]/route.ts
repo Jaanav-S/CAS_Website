@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { apiUser } from "@/lib/auth";
+import { apiUser, canSubmitWork } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Experience } from "@/models/Experience";
 import {
@@ -19,6 +19,13 @@ export async function PATCH(
 ) {
   const user = await apiUser("student");
   if (!user) return NextResponse.json({ error: "Not allowed." }, { status: 403 });
+
+  if (!canSubmitWork(user)) {
+    return NextResponse.json(
+      { error: "Your CAS programme is complete, so new work can no longer be added." },
+      { status: 403 },
+    );
+  }
 
   const { id } = await ctx.params;
   await dbConnect();

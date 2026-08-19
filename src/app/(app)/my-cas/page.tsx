@@ -46,10 +46,20 @@ export default async function MyCasPage(props: PageProps<"/my-cas">) {
             Every experience you have proposed, and where it is in review.
           </p>
         </div>
-        <Link href="/experiences/new" className="btn btn-primary">
-          + New CAS experience
-        </Link>
+        {!user.graduated && (
+          <Link href="/experiences/new" className="btn btn-primary">
+            + New CAS experience
+          </Link>
+        )}
       </div>
+
+      {user.graduated && (
+        <p className="rounded-lg border border-info/30 bg-info-soft px-3 py-2 text-sm text-info">
+          You have completed the CAS programme. Your record stays here for good
+          — you can still read everything, but new experiences can no longer be
+          added.
+        </p>
+      )}
 
       {banner && (
         <p className="rounded-lg border border-brand/30 bg-brand-soft px-3 py-2 text-sm text-brand-strong">

@@ -91,7 +91,13 @@ export async function advisorOptions(
   return all.map((t) => ({ id: String(t._id), name: t.name }));
 }
 
-export type PopulatedPerson = { _id: string; name: string; image?: string };
+export type PopulatedPerson = {
+  _id: string;
+  name: string;
+  image?: string;
+  section?: string | null;
+  graduated?: boolean;
+};
 
 export type ExperienceDetail = Omit<
   ExperienceDoc,
@@ -111,7 +117,7 @@ export async function experienceDetail(
   if (!/^[0-9a-fA-F]{24}$/.test(id)) return null;
 
   const doc = await Experience.findById(id)
-    .populate("student", "name image email")
+    .populate("student", "name image email section graduated")
     .populate("casAdvisor", "name")
     .populate("section", "name year")
     .lean();

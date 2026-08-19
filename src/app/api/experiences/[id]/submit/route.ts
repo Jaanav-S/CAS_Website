@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { apiUser } from "@/lib/auth";
+import { apiUser, canSubmitWork } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Experience } from "@/models/Experience";
 import { blogSchema, firstIssue, proposalSchema } from "@/lib/validation";
@@ -11,6 +11,13 @@ export async function POST(
 ) {
   const user = await apiUser("student");
   if (!user) return NextResponse.json({ error: "Not allowed." }, { status: 403 });
+
+  if (!canSubmitWork(user)) {
+    return NextResponse.json(
+      { error: "Your CAS programme is complete, so new work can no longer be added." },
+      { status: 403 },
+    );
+  }
 
   const { id } = await ctx.params;
   await dbConnect();
@@ -57,6 +64,8 @@ export async function POST(
     blogTitle: experience.blogTitle ?? "",
     blogBody: experience.blogBody ?? "",
     headerImage: experience.headerImage ?? "",
+    headerWidth: experience.headerWidth ?? null,
+    headerHeight: experience.headerHeight ?? null,
     images: experience.images ?? [],
   });
   if (!parsed.success) {

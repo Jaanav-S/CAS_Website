@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DP_YEARS } from "@/lib/constants";
 
 export function CreateSection({ years }: { years: string[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [year, setYear] = useState(years[1] ?? years[0] ?? "");
+  const [dpYear, setDpYear] = useState<string>(DP_YEARS[0]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -18,7 +20,7 @@ export function CreateSection({ years }: { years: string[] }) {
     const res = await fetch("/api/admin/sections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, year }),
+      body: JSON.stringify({ name, year, dpYear }),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
@@ -58,6 +60,22 @@ export function CreateSection({ years }: { years: string[] }) {
           onChange={(e) => setYear(e.target.value)}
         >
           {years.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="w-32">
+        <label className="label" htmlFor="section-dp">
+          DP year
+        </label>
+        <select
+          id="section-dp"
+          className="select"
+          value={dpYear}
+          onChange={(e) => setDpYear(e.target.value)}
+        >
+          {DP_YEARS.map((option) => (
             <option key={option}>{option}</option>
           ))}
         </select>

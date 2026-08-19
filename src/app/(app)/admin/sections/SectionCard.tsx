@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { DP_YEARS } from "@/lib/constants";
 
 export type TeacherOption = { _id: string; name: string; email: string };
 
@@ -11,6 +12,7 @@ export type SectionView = {
   _id: string;
   name: string;
   year: string;
+  dpYear: string;
   teachers: TeacherOption[];
 };
 
@@ -50,6 +52,23 @@ export function SectionCard({
     router.refresh();
   }
 
+  async function saveDpYear(value: string) {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/admin/sections/${section._id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dpYear: value }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? "Could not change the DP year.");
+      return;
+    }
+    router.refresh();
+  }
+
   async function remove() {
     setBusy(true);
     setError(null);
@@ -70,7 +89,10 @@ export function SectionCard({
     <div className="card space-y-4 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-bold">{section.name}</h2>
+          <h2 className="flex items-center gap-2 font-bold">
+            {section.name}
+            <span className="badge badge-approved">{section.dpYear}</span>
+          </h2>
           <p className="hint">{section.year}</p>
         </div>
         <Link
@@ -79,6 +101,26 @@ export function SectionCard({
         >
           {studentCount} student{studentCount === 1 ? "" : "s"}
         </Link>
+      </div>
+
+      <div>
+        <label className="label" htmlFor={`dp-${section._id}`}>
+          DP year
+        </label>
+        <select
+          id={`dp-${section._id}`}
+          className="select"
+          value={section.dpYear}
+          disabled={busy}
+          onChange={(e) => void saveDpYear(e.target.value)}
+        >
+          {DP_YEARS.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
+        </select>
+        <p className="hint mt-1">
+          Moving a student into this section labels their new work {section.dpYear}.
+        </p>
       </div>
 
       <div>

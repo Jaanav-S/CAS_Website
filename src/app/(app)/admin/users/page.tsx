@@ -15,19 +15,25 @@ export default async function AdminUsersPage(props: PageProps<"/admin/users">) {
 
   const status = typeof params.status === "string" ? params.status : null;
   const role = typeof params.role === "string" ? params.role : null;
+  const graduated = typeof params.graduated === "string" ? params.graduated : null;
 
   await dbConnect();
   const query: Record<string, unknown> = {};
   if (status && ACCOUNT_STATUSES.includes(status as never)) query.status = status;
   if (role && ROLES.includes(role as never)) query.role = role;
+  if (graduated === "yes") query.graduated = true;
+  if (graduated === "no") query.graduated = { $ne: true };
 
   const [userDocs, sectionDocs] = await Promise.all([
     User.find(query)
-      .select("name email image role status section createdAt")
+      .select("name email image role status section graduated createdAt")
       .sort({ status: 1, createdAt: -1 })
       .limit(500)
       .lean(),
-    Section.find().select("name year").sort({ year: -1, name: 1 }).lean(),
+    Section.find()
+      .select("name year dpYear")
+      .sort({ dpYear: 1, year: -1, name: 1 })
+      .lean(),
   ]);
 
   const users = plain(userDocs as unknown as AdminUser[]);
@@ -48,7 +54,9 @@ export default async function AdminUsersPage(props: PageProps<"/admin/users">) {
           base="/admin/users"
           param="status"
           current={status}
-          other={role ? `role=${role}` : ""}
+          other={[role ? `role=${role}` : "", graduated ? `graduated=${graduated}` : ""]
+            .filter(Boolean)
+            .join("&")}
           options={[...ACCOUNT_STATUSES]}
         />
         <FilterGroup
@@ -56,8 +64,20 @@ export default async function AdminUsersPage(props: PageProps<"/admin/users">) {
           base="/admin/users"
           param="role"
           current={role}
-          other={status ? `status=${status}` : ""}
+          other={[status ? `status=${status}` : "", graduated ? `graduated=${graduated}` : ""]
+            .filter(Boolean)
+            .join("&")}
           options={[...ROLES]}
+        />
+        <FilterGroup
+          label="Graduated"
+          base="/admin/users"
+          param="graduated"
+          current={graduated}
+          other={[status ? `status=${status}` : "", role ? `role=${role}` : ""]
+            .filter(Boolean)
+            .join("&")}
+          options={["yes", "no"]}
         />
       </div>
 

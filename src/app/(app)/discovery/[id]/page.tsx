@@ -19,7 +19,11 @@ export default async function DiscoveryPostPage(
   // Only approved reflections are published to Discovery.
   if (!experience || experience.status !== "approved") notFound();
 
-  const moderator = await canModerate(user, experience.section?._id);
+  const moderator = await canModerate(
+    user,
+    experience.section?._id,
+    experience.student.section,
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -35,6 +39,8 @@ export default async function DiscoveryPostPage(
 
       <BlogView
         headerImage={experience.headerImage}
+        headerWidth={experience.headerWidth}
+        headerHeight={experience.headerHeight}
         blogTitle={experience.blogTitle}
         blogBody={experience.blogBody}
         images={experience.images}

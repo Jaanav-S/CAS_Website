@@ -1,5 +1,6 @@
 import mongoose, { Schema, models, model } from "mongoose";
 import {
+  DP_YEARS,
   EXPERIENCE_STAGES,
   LOCATIONS,
   LO_IDS,
@@ -22,6 +23,9 @@ export interface ExperienceDoc {
   _id: mongoose.Types.ObjectId;
   student: mongoose.Types.ObjectId;
   section?: mongoose.Types.ObjectId | null;
+  /** Snapshot of the section's DP year, so a DP1 experience stays DP1 after
+   *  the student moves up to DP2. */
+  dpYear?: string | null;
 
   // --- Step 1: proposal form ---
   year: string;
@@ -43,6 +47,8 @@ export interface ExperienceDoc {
 
   // --- Step 2: reflection blog ---
   headerImage?: string;
+  headerWidth?: number;
+  headerHeight?: number;
   images: string[];
   blogTitle?: string;
   blogBody?: string;
@@ -82,6 +88,7 @@ const ExperienceSchema = new Schema<ExperienceDoc>(
       index: true,
     },
     section: { type: Schema.Types.ObjectId, ref: "Section", default: null, index: true },
+    dpYear: { type: String, enum: [...DP_YEARS, null], default: null, index: true },
 
     year: { type: String, required: true },
     term: { type: String, enum: TERMS, required: true },
@@ -115,6 +122,8 @@ const ExperienceSchema = new Schema<ExperienceDoc>(
     stage: { type: String, enum: EXPERIENCE_STAGES, default: "Planned" },
 
     headerImage: { type: String },
+    headerWidth: { type: Number },
+    headerHeight: { type: Number },
     images: { type: [String], default: [] },
     blogTitle: { type: String },
     blogBody: { type: String },

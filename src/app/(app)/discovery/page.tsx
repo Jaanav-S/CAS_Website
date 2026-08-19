@@ -1,11 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Experience } from "@/models/Experience";
+import { Section } from "@/models/Section";
+import { User } from "@/models/User";
 import { plain } from "@/lib/serialize";
-import { STRANDS } from "@/lib/constants";
+import { DP_YEARS } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
+import { DiscoveryFilters, type FilterOption } from "./DiscoveryFilters";
 
 export const metadata = { title: "Discovery" };
 
@@ -16,29 +20,71 @@ type FeedItem = {
   blogBody?: string;
   headerImage?: string;
   strands: string[];
+  dpYear?: string | null;
   reviewedAt?: string;
   submittedAt?: string;
   student: { _id: string; name: string; image?: string };
+  section?: { _id: string; name: string; year: string } | null;
 };
+
+const objectId = /^[0-9a-fA-F]{24}$/;
 
 export default async function DiscoveryPage(props: PageProps<"/discovery">) {
   await requireUser();
-
   const params = await props.searchParams;
-  const strand = typeof params.strand === "string" ? params.strand : null;
+
+  const one = (key: string) =>
+    typeof params[key] === "string" ? (params[key] as string) : null;
 
   await dbConnect();
+
+  // Only offer filter values that actually have something published behind
+  // them, so the dropdowns never lead to an empty page.
+  const [sectionIds, studentIds] = await Promise.all([
+    Experience.distinct("section", { status: "approved" }),
+    Experience.distinct("student", { status: "approved" }),
+  ]);
+
+  const [sectionDocs, studentDocs] = await Promise.all([
+    Section.find({ _id: { $in: sectionIds.filter(Boolean) } })
+      .select("name year dpYear")
+      .sort({ dpYear: 1, year: -1, name: 1 })
+      .lean<{ _id: unknown; name: string; year: string; dpYear: string }[]>(),
+    User.find({ _id: { $in: studentIds } })
+      .select("name")
+      .sort({ name: 1 })
+      .lean<{ _id: unknown; name: string }[]>(),
+  ]);
+
+  const sections: FilterOption[] = sectionDocs.map((s) => ({
+    value: String(s._id),
+    label: `${s.name} · ${s.year} (${s.dpYear})`,
+  }));
+  const students: FilterOption[] = studentDocs.map((s) => ({
+    value: String(s._id),
+    label: s.name,
+  }));
+
   const query: Record<string, unknown> = { status: "approved" };
-  if (strand && STRANDS.includes(strand as never)) query.strands = strand;
+  const section = one("section");
+  const student = one("student");
+  const dpYear = one("dpYear");
+  if (section && objectId.test(section)) query.section = section;
+  if (student && objectId.test(student)) query.student = student;
+  if (dpYear && DP_YEARS.includes(dpYear as never)) query.dpYear = dpYear;
 
   const docs = await Experience.find(query)
-    .select("title blogTitle blogBody headerImage strands reviewedAt submittedAt student")
+    .select(
+      "title blogTitle blogBody headerImage strands dpYear reviewedAt submittedAt student section",
+    )
     .populate("student", "name image")
+    .populate("section", "name year")
     .sort({ reviewedAt: -1 })
     .limit(60)
     .lean();
 
   const feed = plain(docs as unknown as FeedItem[]);
+  const filtered = Boolean(section || student || dpYear);
 
   return (
     <div className="space-y-6">
@@ -50,23 +96,19 @@ export default async function DiscoveryPage(props: PageProps<"/discovery">) {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <FilterChip label="Everything" href="/discovery" active={!strand} />
-        {STRANDS.map((item) => (
-          <FilterChip
-            key={item}
-            label={item}
-            href={`/discovery?strand=${item}`}
-            active={strand === item}
-          />
-        ))}
-      </div>
+      <Suspense fallback={<div className="card h-24" />}>
+        <DiscoveryFilters sections={sections} students={students} />
+      </Suspense>
 
       {feed.length === 0 ? (
         <div className="card p-10 text-center">
-          <p className="font-semibold">No reflections published yet</p>
+          <p className="font-semibold">
+            {filtered ? "Nothing matches those filters" : "No reflections published yet"}
+          </p>
           <p className="mt-1 text-sm text-muted">
-            Reflections appear here once a teacher approves them.
+            {filtered
+              ? "Try widening the search."
+              : "Reflections appear here once a teacher approves them."}
           </p>
         </div>
       ) : (
@@ -92,6 +134,9 @@ export default async function DiscoveryPage(props: PageProps<"/discovery">) {
 
               <div className="flex flex-1 flex-col gap-2 p-4">
                 <div className="flex flex-wrap gap-1.5">
+                  {item.dpYear && (
+                    <span className="badge badge-approved">{item.dpYear}</span>
+                  )}
                   {item.strands.map((s) => (
                     <span key={s} className="badge badge-info">
                       {s}
@@ -121,7 +166,9 @@ export default async function DiscoveryPage(props: PageProps<"/discovery">) {
                     </span>
                   )}
                   <span className="hint truncate">
-                    {item.student.name} · {formatDate(item.reviewedAt ?? item.submittedAt)}
+                    {item.student.name}
+                    {item.section && ` · ${item.section.name}`} ·{" "}
+                    {formatDate(item.reviewedAt ?? item.submittedAt)}
                   </span>
                 </div>
               </div>
@@ -130,24 +177,5 @@ export default async function DiscoveryPage(props: PageProps<"/discovery">) {
         </div>
       )}
     </div>
-  );
-}
-
-function FilterChip({
-  label,
-  href,
-  active,
-}: {
-  label: string;
-  href: string;
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`badge ${active ? "badge-approved" : "badge-neutral"} px-3 py-1.5`}
-    >
-      {label}
-    </Link>
   );
 }

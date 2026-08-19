@@ -77,6 +77,8 @@ export const blogSchema = z.object({
     .trim()
     .min(100, "Write at least 100 characters about your experience."),
   headerImage: z.string().trim().min(1, "A header image is required."),
+  headerWidth: z.number().int().positive().nullish(),
+  headerHeight: z.number().int().positive().nullish(),
   images: z.array(z.string().trim()).default([]),
 });
 
@@ -89,6 +91,8 @@ export const blogDraftSchema = z
     blogTitle: z.string().trim(),
     blogBody: z.string().trim(),
     headerImage: z.string().trim(),
+    headerWidth: z.number().int().positive().nullish(),
+    headerHeight: z.number().int().positive().nullish(),
     images: z.array(z.string().trim()),
   })
   .partial();

@@ -60,6 +60,14 @@ export const LEARNER_PROFILE = [
 
 export const TERMS = ["Term 1", "Term 2", "Term 3"] as const;
 
+/**
+ * Which year of the Diploma Programme a section belongs to. A student moves
+ * from a DP1 section to a DP2 section on the same account, so this lives on
+ * the section rather than the person.
+ */
+export const DP_YEARS = ["DP1", "DP2"] as const;
+export type DpYear = (typeof DP_YEARS)[number];
+
 export const LOCATIONS = ["In-school", "Out-of-school", "Both"] as const;
 
 /** Status of the CAS experience itself (as opposed to its review status). */

@@ -4,6 +4,8 @@ import { formatDate } from "@/lib/format";
 
 export type BlogViewProps = {
   headerImage?: string;
+  headerWidth?: number | null;
+  headerHeight?: number | null;
   blogTitle?: string;
   blogBody?: string;
   images?: string[];
@@ -15,6 +17,8 @@ export type BlogViewProps = {
 
 export function BlogView({
   headerImage,
+  headerWidth,
+  headerHeight,
   blogTitle,
   blogBody,
   images = [],
@@ -26,13 +30,16 @@ export function BlogView({
   return (
     <article className="card overflow-hidden">
       {headerImage && (
-        <div className="relative h-64 w-full bg-surface-2 sm:h-80">
+        // The image keeps its own proportions, whatever shape it was uploaded
+        // at, but never grows past a readable height on the page.
+        <div className="flex w-full justify-center bg-surface-2">
           <Image
             src={headerImage}
             alt=""
-            fill
+            width={headerWidth ?? 1600}
+            height={headerHeight ?? 900}
             sizes="(max-width: 768px) 100vw, 768px"
-            className="object-cover"
+            className="max-h-[70vh] w-auto max-w-full object-contain"
             priority
             unoptimized
           />

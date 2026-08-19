@@ -26,7 +26,8 @@ export default async function ExperiencePage(
   }
 
   const editable =
-    experience.status === "draft" || experience.status === "rejected";
+    !user.graduated &&
+    (experience.status === "draft" || experience.status === "rejected");
 
   return (
     <div className="space-y-6">
@@ -62,6 +63,8 @@ export default async function ExperiencePage(
       {experience.headerImage || experience.blogBody ? (
         <BlogView
           headerImage={experience.headerImage}
+          headerWidth={experience.headerWidth}
+          headerHeight={experience.headerHeight}
           blogTitle={experience.blogTitle}
           blogBody={experience.blogBody}
           images={experience.images}
@@ -76,9 +79,11 @@ export default async function ExperiencePage(
           <p className="mt-1 text-sm text-muted">
             Add a header image and write your blog to submit this experience.
           </p>
-          <Link href={`/experiences/${id}/edit`} className="btn btn-primary mt-4">
-            Write the reflection
-          </Link>
+          {editable && (
+            <Link href={`/experiences/${id}/edit`} className="btn btn-primary mt-4">
+              Write the reflection
+            </Link>
+          )}
         </div>
       )}
 

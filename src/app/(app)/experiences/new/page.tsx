@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { academicYears } from "@/lib/constants";
 import { advisorOptions } from "@/lib/queries";
@@ -7,6 +8,7 @@ export const metadata = { title: "New CAS experience" };
 
 export default async function NewExperiencePage() {
   const user = await requireRole("student");
+  if (user.graduated) redirect("/my-cas");
   const teachers = await advisorOptions(user.sectionId);
 
   return (

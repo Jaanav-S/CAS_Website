@@ -61,6 +61,7 @@ export type SessionUser = {
   role: Role;
   status: UserDoc["status"];
   sectionId: string | null;
+  graduated: boolean;
   rejectionReason?: string;
 };
 
@@ -73,6 +74,7 @@ function toSessionUser(user: UserDoc): SessionUser {
     role: user.role,
     status: user.status,
     sectionId: user.section ? String(user.section) : null,
+    graduated: Boolean(user.graduated),
     rejectionReason: user.rejectionReason,
   };
 }
@@ -114,6 +116,14 @@ export async function requireRole(...roles: Role[]): Promise<SessionUser> {
   const user = await requireUser();
   if (!roles.includes(user.role)) redirect("/");
   return user;
+}
+
+/**
+ * A graduate keeps their account and can read everything, but the programme is
+ * over for them, so they may no longer add to it.
+ */
+export function canSubmitWork(user: SessionUser): boolean {
+  return user.role === "student" && !user.graduated;
 }
 
 /** API-route variant: returns null instead of redirecting. */

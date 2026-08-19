@@ -31,10 +31,20 @@ export default async function DashboardPage() {
             Here is how your Creativity, Activity and Service programme is going.
           </p>
         </div>
-        <Link href="/experiences/new" className="btn btn-primary">
-          + New CAS experience
-        </Link>
+        {!user.graduated && (
+          <Link href="/experiences/new" className="btn btn-primary">
+            + New CAS experience
+          </Link>
+        )}
       </div>
+
+      {user.graduated && (
+        <p className="rounded-lg border border-info/30 bg-info-soft px-3 py-2 text-sm text-info">
+          You have completed the CAS programme. Your record stays here for good
+          — you can still read everything, but new experiences can no longer be
+          added.
+        </p>
+      )}
 
       {needsWork.length > 0 && (
         <div className="rounded-xl border border-danger/30 bg-danger-soft p-4">
@@ -82,9 +92,11 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm text-muted">
               Start by proposing an experience, then write your reflection.
             </p>
-            <Link href="/experiences/new" className="btn btn-primary mt-4">
-              Add your first experience
-            </Link>
+            {!user.graduated && (
+              <Link href="/experiences/new" className="btn btn-primary mt-4">
+                Add your first experience
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

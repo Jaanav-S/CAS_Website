@@ -13,10 +13,16 @@ export type AdminUser = {
   role: Role;
   status: AccountStatus;
   section?: string | null;
+  graduated?: boolean;
   createdAt: string;
 };
 
-export type SectionOption = { _id: string; name: string; year: string };
+export type SectionOption = {
+  _id: string;
+  name: string;
+  year: string;
+  dpYear: string;
+};
 
 export function UserRow({
   user,
@@ -110,7 +116,7 @@ export function UserRow({
           <option value="">No section</option>
           {sections.map((section) => (
             <option key={section._id} value={section._id}>
-              {section.name} · {section.year}
+              {section.name} · {section.year} ({section.dpYear})
             </option>
           ))}
         </select>
@@ -120,6 +126,9 @@ export function UserRow({
         <span className={`badge badge-${user.status === "approved" ? "approved" : user.status}`}>
           {user.status}
         </span>
+        {user.graduated && (
+          <span className="badge badge-info ml-1">graduated</span>
+        )}
         <p className="hint mt-1">joined {formatDate(user.createdAt)}</p>
       </td>
 
@@ -143,6 +152,21 @@ export function UserRow({
               onClick={() => patch({ status: "rejected" })}
             >
               Reject
+            </button>
+          )}
+          {user.status === "approved" && user.role === "student" && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={busy}
+              title={
+                user.graduated
+                  ? "Let them add new CAS experiences again"
+                  : "They keep their account and can still read everything, but cannot add new work"
+              }
+              onClick={() => patch({ graduated: !user.graduated })}
+            >
+              {user.graduated ? "Un-graduate" : "Mark graduated"}
             </button>
           )}
           {user.status === "approved" && !isSelf && (

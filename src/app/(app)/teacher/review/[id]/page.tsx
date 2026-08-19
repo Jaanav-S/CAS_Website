@@ -53,6 +53,8 @@ export default async function ReviewPage(
         <div className="min-w-0 space-y-6">
           <BlogView
             headerImage={experience.headerImage}
+            headerWidth={experience.headerWidth}
+            headerHeight={experience.headerHeight}
             blogTitle={experience.blogTitle}
             blogBody={experience.blogBody}
             images={experience.images}
