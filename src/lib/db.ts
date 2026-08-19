@@ -46,3 +46,25 @@ export async function dbConnect(): Promise<typeof mongoose> {
 
   return cached.conn;
 }
+
+/**
+ * Compiles a Mongoose model, reusing the cached one in production.
+ *
+ * In development the cached model is thrown away first. Mongoose keeps
+ * compiled models on its singleton, and Next.js hot-reloads modules without
+ * restarting the process — so editing a schema (adding a role to an enum, say)
+ * would otherwise leave the *old* schema validating requests until the server
+ * was restarted, with a confusing "not a valid enum value" error.
+ */
+export function registerModel<T>(
+  name: string,
+  schema: mongoose.Schema<T>,
+): mongoose.Model<T> {
+  if (process.env.NODE_ENV !== "production" && mongoose.models[name]) {
+    mongoose.deleteModel(name);
+  }
+  return (
+    (mongoose.models[name] as mongoose.Model<T>) ??
+    mongoose.model<T>(name, schema)
+  );
+}

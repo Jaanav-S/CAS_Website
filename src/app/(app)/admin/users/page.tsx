@@ -4,7 +4,7 @@ import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { Section } from "@/models/Section";
 import { plain } from "@/lib/serialize";
-import { ACCOUNT_STATUSES, ROLES } from "@/lib/constants";
+import { ACCOUNT_STATUSES, ROLES, ROLE_LABELS } from "@/lib/constants";
 import { UserRow, type AdminUser, type SectionOption } from "./UserRow";
 
 export const metadata = { title: "Users" };
@@ -68,6 +68,7 @@ export default async function AdminUsersPage(props: PageProps<"/admin/users">) {
             .filter(Boolean)
             .join("&")}
           options={[...ROLES]}
+          labels={ROLE_LABELS}
         />
         <FilterGroup
           label="Graduated"
@@ -121,6 +122,7 @@ function FilterGroup({
   current,
   other,
   options,
+  labels,
 }: {
   label: string;
   base: string;
@@ -128,6 +130,7 @@ function FilterGroup({
   current: string | null;
   other: string;
   options: string[];
+  labels?: Record<string, string>;
 }) {
   const href = (value: string | null) => {
     const parts = [other, value ? `${param}=${value}` : ""].filter(Boolean);
@@ -151,7 +154,7 @@ function FilterGroup({
             current === option ? "badge-approved" : "badge-neutral"
           }`}
         >
-          {option}
+          {labels?.[option] ?? option}
         </Link>
       ))}
     </div>

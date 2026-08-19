@@ -1,4 +1,5 @@
-import mongoose, { Schema, models, model } from "mongoose";
+import mongoose, { Schema } from "mongoose";
+import { registerModel } from "@/lib/db";
 import { DP_YEARS, type DpYear } from "@/lib/constants";
 
 export interface SectionDoc {
@@ -23,6 +24,4 @@ const SectionSchema = new Schema<SectionDoc>(
 
 SectionSchema.index({ name: 1, year: 1 }, { unique: true });
 
-export const Section =
-  (models.Section as mongoose.Model<SectionDoc>) ||
-  model<SectionDoc>("Section", SectionSchema);
+export const Section = registerModel<SectionDoc>("Section", SectionSchema);

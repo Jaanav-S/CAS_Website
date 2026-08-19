@@ -5,6 +5,7 @@ import { Experience } from "@/models/Experience";
 import {
   blogDraftSchema,
   firstIssue,
+  onlySubmitted,
   proposalDraftSchema,
   proposalSchema,
 } from "@/lib/validation";
@@ -52,7 +53,9 @@ export async function PATCH(
     if (!parsed.success) {
       return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
     }
-    update = { ...parsed.data };
+    update = autosave
+      ? { ...onlySubmitted(body.data, parsed.data) }
+      : { ...parsed.data };
     if ("casAdvisor" in update) update.casAdvisor = update.casAdvisor || null;
   } else if (body.step === "blog") {
     // Draft writes are lenient in both directions — "Save draft" and autosave
@@ -61,7 +64,7 @@ export async function PATCH(
     if (!parsed.success) {
       return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
     }
-    update = { ...parsed.data };
+    update = { ...onlySubmitted(body.data, parsed.data) };
   } else {
     return NextResponse.json({ error: "Unknown step." }, { status: 400 });
   }

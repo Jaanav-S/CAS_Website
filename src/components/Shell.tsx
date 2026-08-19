@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { SessionUser } from "@/lib/auth";
+import { ROLE_LABELS } from "@/lib/constants";
 import { LogoutButton, NavLinks, type NavItem } from "@/components/Nav";
 
 const NAV: Record<SessionUser["role"], NavItem[]> = {
@@ -11,10 +12,17 @@ const NAV: Record<SessionUser["role"], NavItem[]> = {
   teacher: [
     { href: "/teacher", label: "Class overview" },
     { href: "/teacher/review", label: "Review queue" },
+    { href: "/teacher/projects", label: "CAS projects" },
+    { href: "/discovery", label: "Discovery" },
+  ],
+  supervisor: [
+    { href: "/supervisor", label: "Overview" },
+    { href: "/supervisor/projects", label: "CAS projects" },
     { href: "/discovery", label: "Discovery" },
   ],
   admin: [
     { href: "/admin", label: "Overview" },
+    { href: "/admin/projects", label: "CAS projects" },
     { href: "/admin/users", label: "Users" },
     { href: "/admin/sections", label: "Sections" },
     { href: "/discovery", label: "Discovery" },
@@ -47,7 +55,7 @@ export function Shell({
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold leading-tight">{user.name}</p>
-              <p className="text-xs capitalize text-muted">{user.role}</p>
+              <p className="text-xs text-muted">{ROLE_LABELS[user.role] ?? user.role}</p>
             </div>
             <LogoutButton />
           </div>

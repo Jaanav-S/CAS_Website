@@ -87,11 +87,15 @@ linked to one account.
 
 ### Roles
 
-| Role        | Can                                                                        |
-| ----------- | -------------------------------------------------------------------------- |
-| **Student** | Propose experiences, write reflections, track their own progress, read Discovery |
-| **Teacher** | See their section's progress, approve or send back submissions, read Discovery |
-| **Admin**   | Approve accounts, set roles, manage sections, see programme-wide stats      |
+| Role                | Can                                                                        |
+| ------------------- | -------------------------------------------------------------------------- |
+| **Student**         | Propose experiences, write reflections, run CAS projects, track their own progress, read Discovery |
+| **Teacher**         | See their section's progress, approve or send back submissions and their section's CAS projects |
+| **CAS supervisor**  | A school-wide overview, and the second sign-off every CAS project needs      |
+| **Admin**           | Approve accounts, set roles, manage sections, see programme-wide stats       |
+
+Create a CAS supervisor from **Users** → set someone's role to *CAS supervisor*.
+Without one, projects can be submitted but never fully approved.
 
 Everyone signs up as a pending student. Nothing is visible until an admin
 approves the account.
@@ -196,6 +200,37 @@ create, edit, submit or upload — the API refuses it and the buttons disappear.
 They also drop off their teacher's class overview. It is reversible with
 *Un-graduate*.
 
+### CAS projects
+
+A CAS project is the collaborative one, and it is kept separate from ordinary
+experiences: it lives under **My CAS → CAS projects**.
+
+**Who is on it.** The student who starts it adds up to six others by email.
+Each address is checked as it is typed and again on save — it has to belong to a
+registered, admin-approved, not-yet-graduated *student* account. Everyone on the
+project can read and edit it; only the creator can change the member list.
+
+**The form** covers project members, title, focus, anticipated dates, CAS
+supervisor, strands, the four CAS stages (investigation, preparation/planning,
+action, reflection), budget, donation organisation and its contact, external
+supervisor, risk assessment and precautions, and links to a planning doc and a
+participation form.
+
+**Two approvals.** A submitted project goes to the section teacher *and* a CAS
+supervisor at the same time. Both must approve. Either one rejecting sends the
+whole project back with a reason, and resubmitting resets both sign-offs.
+
+**The timeline** unlocks only once both approvals are in. Every entry needs a
+date, a description and a photo — all three. Any member can add entries and
+remove their own; the teacher and CAS supervisor can read the timeline but not
+edit it.
+
+**Contacting the students.** On a project, staff get shortcuts to Google
+Calendar (prefilled with every member as a guest) and Gmail (addressed to all of
+them). The Chat button opens Google Chat — Google publishes no link that opens a
+direct message with a given email address, so it lands on the conversation list
+rather than on that person.
+
 ### Rolling the year over
 
 Sections → **Open promotion panel** does the whole end-of-year move in two
@@ -242,13 +277,15 @@ src/
       my-cas/         a student's own submissions by status
       experiences/    the two-step wizard, view and edit
       discovery/      the approved-reflection feed
-      teacher/        class overview, review queue, student records
-      admin/          stats, users, sections
+      projects/       CAS projects: the form, the detail view and the timeline
+      teacher/        class overview, review queue, student records, projects
+      supervisor/     CAS supervisor overview and project approvals
+      admin/          stats, users, sections, projects
     api/              route handlers (auth, experiences, uploads, admin)
     login, signup, pending
   components/         shared UI (form controls, cards, blog rendering)
   lib/                auth, db, validation, progress, queries
-  models/             Mongoose schemas: User, Section, Experience
+  models/             Mongoose schemas: User, Section, Experience, CasProject
   proxy.ts            redirects signed-out visitors to /login
 scripts/              one-off migrations
 uploads/              runtime image uploads (gitignored)
@@ -263,6 +300,13 @@ uploads/              runtime image uploads (gitignored)
   by `/api/uploads/[name]`, which requires a signed-in, approved account. Stored
   filenames are generated UUIDs, so a crafted upload name cannot escape the
   directory.
+- **Models are re-compiled on hot reload in development.** Mongoose caches
+  compiled models on its singleton and `next dev` reloads modules without
+  restarting the process, so editing a schema — adding a role to an enum, say —
+  would otherwise keep validating against the *old* schema until the server was
+  restarted, with a baffling "not a valid enum value" error. `registerModel()`
+  in [`src/lib/db.ts`](src/lib/db.ts) drops the cached model first in
+  development, and reuses it untouched in production.
 - **`proxy.ts`** (Next.js 16's renamed middleware) is only a cheap
   "is there a cookie" gate. Real authorisation happens in every page and route
   handler.

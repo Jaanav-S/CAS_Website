@@ -81,11 +81,49 @@ export const REVIEW_STATUSES = [
 ] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
-export const ROLES = ["student", "teacher", "admin"] as const;
+export const ROLES = ["student", "teacher", "supervisor", "admin"] as const;
+
+/** Human labels for roles — "supervisor" is the CAS supervisor/coordinator. */
+export const ROLE_LABELS: Record<string, string> = {
+  student: "Student",
+  teacher: "Teacher",
+  supervisor: "CAS supervisor",
+  admin: "Admin",
+};
 export type Role = (typeof ROLES)[number];
 
 export const ACCOUNT_STATUSES = ["pending", "approved", "rejected"] as const;
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
+
+/** The four CAS stages a project is planned through. */
+export const PROJECT_STAGES = [
+  {
+    key: "investigation",
+    label: "Investigation",
+    help: "Why did you select this, and what research or investigation have you done for this project?",
+  },
+  { key: "planning", label: "Preparation / Planning", help: "" },
+  { key: "action", label: "Action", help: "" },
+  { key: "reflection", label: "Reflection", help: "" },
+] as const;
+
+/**
+ * The second approval round, once the students say the project is finished.
+ * "none" means they have not marked it done yet.
+ */
+export const COMPLETION_STATUSES = ["none", "pending", "approved", "rejected"] as const;
+export type CompletionStatus = (typeof COMPLETION_STATUSES)[number];
+
+/** What Discovery is showing: individual reflections, or finished projects. */
+export const DISCOVERY_KINDS = ["reflection", "project"] as const;
+export type DiscoveryKind = (typeof DISCOVERY_KINDS)[number];
+
+/** Both approvals must land before a project is signed off. */
+export const PROJECT_APPROVERS = ["teacher", "supervisor"] as const;
+export type ProjectApprover = (typeof PROJECT_APPROVERS)[number];
+
+/** How many collaborators a project owner may add alongside themselves. */
+export const MAX_PROJECT_MEMBERS = 6;
 
 /** Graduation requirements checked on the student dashboard. */
 export const REQUIREMENTS = {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   EXPERIENCE_STAGES,
+  MAX_PROJECT_MEMBERS,
   LEARNER_PROFILE,
   LOCATIONS,
   LO_IDS,
@@ -107,4 +108,107 @@ export const reviewSchema = z
     path: ["comment"],
   });
 
+// ---------------------------------------------------------------- projects
+
+const optionalUrl = z
+  .union([z.string().trim().url("Enter a full link starting with https://"), z.literal("")])
+  .default("");
+
+const projectObject = z.object({
+  title: z.string().trim().min(3, "Give the project a title."),
+  focus: z.string().trim().min(10, "Describe the focus or objective."),
+  fromDate: z.coerce.date(),
+  toDate: z.coerce.date(),
+  casSupervisor: z.string().regex(/^[0-9a-fA-F]{24}$/).nullish(),
+  strands: z.array(z.enum(STRANDS)).min(1, "Select at least one strand."),
+  investigation: z.string().trim().min(10, "Describe your investigation."),
+  planning: z.string().trim().min(10, "Describe your preparation and planning."),
+  action: z.string().trim().min(10, "Describe the action."),
+  reflection: z.string().trim().min(10, "Describe your reflection."),
+  budget: z.string().trim().default(""),
+  donationOrg: z.string().trim().default(""),
+  contactPerson: z.string().trim().default(""),
+  contactPhone: z.string().trim().default(""),
+  contactEmail: z
+    .union([z.string().trim().email("Enter a valid contact email."), z.literal("")])
+    .default(""),
+  externalSupervisor: z.string().trim().default(""),
+  riskAssessmentRequired: z.boolean().default(false),
+  riskAssessmentCompleted: z.boolean().default(false),
+  precautions: z.string().trim().default(""),
+  planningDocUrl: optionalUrl,
+  enrollmentFormUrl: optionalUrl,
+  memberEmails: z
+    .array(z.string().trim().toLowerCase().email("That is not a valid email."))
+    .max(MAX_PROJECT_MEMBERS, `You can add at most ${MAX_PROJECT_MEMBERS} people.`)
+    .default([]),
+});
+
+export const projectSchema = projectObject
+  .refine((d) => d.toDate >= d.fromDate, {
+    message: "The end date cannot be before the start date.",
+    path: ["toDate"],
+  })
+  .refine((d) => !d.riskAssessmentRequired || d.riskAssessmentCompleted, {
+    message:
+      "You said a risk assessment is required, so it has to be completed before submitting.",
+    path: ["riskAssessmentCompleted"],
+  })
+  .refine((d) => !d.riskAssessmentRequired || d.precautions.length >= 10, {
+    message: "Describe the precautions taken.",
+    path: ["precautions"],
+  });
+
+/** Drafts save whatever has been typed; projectSchema is applied on submit. */
+export const projectDraftSchema = projectObject
+  .extend({
+    title: z.string().trim(),
+    focus: z.string().trim(),
+    fromDate: z.coerce.date().nullish(),
+    toDate: z.coerce.date().nullish(),
+    strands: z.array(z.enum(STRANDS)),
+    investigation: z.string().trim(),
+    planning: z.string().trim(),
+    action: z.string().trim(),
+    reflection: z.string().trim(),
+    contactEmail: z.string().trim(),
+    planningDocUrl: z.string().trim(),
+    enrollmentFormUrl: z.string().trim(),
+  })
+  .partial();
+
+export const timelineSchema = z.object({
+  date: z.coerce.date(),
+  description: z.string().trim().min(10, "Say what happened, in a sentence or two."),
+  image: z.string().trim().min(1, "Every timeline entry needs a photo."),
+  imageWidth: z.number().int().positive().nullish(),
+  imageHeight: z.number().int().positive().nullish(),
+});
+
+export const projectReviewSchema = z
+  .object({
+    action: z.enum(["approve", "reject"]),
+    comment: z.string().trim().default(""),
+  })
+  .refine((d) => d.action === "approve" || d.comment.length >= 5, {
+    message: "Tell the students what needs to change before rejecting.",
+    path: ["comment"],
+  });
+
 export const firstIssue = (error: z.ZodError) => error.issues[0].message;
+
+/**
+ * Keeps only the fields the caller actually sent.
+ *
+ * A `.partial()` schema still applies any `.default()` on a missing field, so
+ * parsing `{ budget: "x" }` hands back every other defaulted field as well.
+ * Writing that straight to Mongo would blank out whatever was stored. Partial
+ * saves must touch nothing but what was submitted.
+ */
+export function onlySubmitted<T extends object>(raw: unknown, parsed: T): Partial<T> {
+  if (typeof raw !== "object" || raw === null) return parsed;
+  const sent = new Set(Object.keys(raw));
+  return Object.fromEntries(
+    Object.entries(parsed).filter(([key]) => sent.has(key)),
+  ) as Partial<T>;
+}

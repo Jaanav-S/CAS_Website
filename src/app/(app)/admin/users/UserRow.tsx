@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ROLES, type AccountStatus, type Role } from "@/lib/constants";
+import { ROLES, ROLE_LABELS, type AccountStatus, type Role } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
 
 export type AdminUser = {
@@ -99,8 +99,8 @@ export function UserRow({
           onChange={(e) => patch({ role: e.target.value })}
         >
           {ROLES.map((role) => (
-            <option key={role} value={role} className="capitalize">
-              {role}
+            <option key={role} value={role}>
+              {ROLE_LABELS[role]}
             </option>
           ))}
         </select>
@@ -110,7 +110,7 @@ export function UserRow({
         <select
           className="select"
           value={user.section ?? ""}
-          disabled={busy || user.role === "admin"}
+          disabled={busy || user.role === "admin" || user.role === "supervisor"}
           onChange={(e) => patch({ section: e.target.value })}
         >
           <option value="">No section</option>

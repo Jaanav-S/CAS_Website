@@ -6,11 +6,11 @@ export default async function Home() {
   if (!user) redirect("/login");
   if (user.status !== "approved") redirect("/pending");
 
-  redirect(
-    user.role === "admin"
-      ? "/admin"
-      : user.role === "teacher"
-        ? "/teacher"
-        : "/dashboard",
-  );
+  const home: Record<string, string> = {
+    admin: "/admin",
+    supervisor: "/supervisor",
+    teacher: "/teacher",
+    student: "/dashboard",
+  };
+  redirect(home[user.role] ?? "/dashboard");
 }

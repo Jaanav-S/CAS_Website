@@ -1,4 +1,5 @@
-import mongoose, { Schema, models, model } from "mongoose";
+import mongoose, { Schema } from "mongoose";
+import { registerModel } from "@/lib/db";
 import {
   DP_YEARS,
   EXPERIENCE_STAGES,
@@ -142,6 +143,4 @@ const ExperienceSchema = new Schema<ExperienceDoc>(
   { timestamps: true },
 );
 
-export const Experience =
-  (models.Experience as mongoose.Model<ExperienceDoc>) ||
-  model<ExperienceDoc>("Experience", ExperienceSchema);
+export const Experience = registerModel<ExperienceDoc>("Experience", ExperienceSchema);

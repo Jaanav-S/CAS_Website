@@ -1,4 +1,5 @@
-import mongoose, { Schema, models, model } from "mongoose";
+import mongoose, { Schema } from "mongoose";
+import { registerModel } from "@/lib/db";
 import { ACCOUNT_STATUSES, ROLES, type AccountStatus, type Role } from "@/lib/constants";
 
 export interface UserDoc {
@@ -41,5 +42,4 @@ const UserSchema = new Schema<UserDoc>(
   { timestamps: true },
 );
 
-export const User =
-  (models.User as mongoose.Model<UserDoc>) || model<UserDoc>("User", UserSchema);
+export const User = registerModel<UserDoc>("User", UserSchema);

@@ -2,17 +2,21 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { studentExperiences } from "@/lib/queries";
+import { projectsForStudent, type ProjectListItem } from "@/lib/projects";
+import { plain } from "@/lib/serialize";
 import { ExperienceCard } from "@/components/ExperienceCard";
+import { ProjectRow } from "@/components/ProjectRow";
 import type { ReviewStatus } from "@/lib/constants";
 
 export const metadata = { title: "My CAS" };
 
-const TABS: { key: ReviewStatus | "all"; label: string }[] = [
+const TABS: { key: ReviewStatus | "all" | "projects"; label: string }[] = [
   { key: "all", label: "All" },
   { key: "draft", label: "Drafts" },
   { key: "pending", label: "Pending" },
   { key: "approved", label: "Approved" },
   { key: "rejected", label: "Needs changes" },
+  { key: "projects", label: "CAS projects" },
 ];
 
 export default async function MyCasPage(props: PageProps<"/my-cas">) {
@@ -28,7 +32,11 @@ export default async function MyCasPage(props: PageProps<"/my-cas">) {
         ? "Saved as a draft. Submit it when you are ready."
         : null;
 
-  const experiences = await studentExperiences(user.id);
+  const [experiences, projectDocs] = await Promise.all([
+    studentExperiences(user.id),
+    projectsForStudent(user.id),
+  ]);
+  const projects = plain(projectDocs as unknown as ProjectListItem[]);
   const counts = experiences.reduce<Record<string, number>>((acc, exp) => {
     acc[exp.status] = (acc[exp.status] ?? 0) + 1;
     return acc;
@@ -71,7 +79,11 @@ export default async function MyCasPage(props: PageProps<"/my-cas">) {
         {TABS.map((item) => {
           const active = tab === item.key;
           const count =
-            item.key === "all" ? experiences.length : (counts[item.key] ?? 0);
+            item.key === "all"
+              ? experiences.length
+              : item.key === "projects"
+                ? projects.length
+                : (counts[item.key] ?? 0);
           return (
             <Link
               key={item.key}
@@ -91,7 +103,37 @@ export default async function MyCasPage(props: PageProps<"/my-cas">) {
         })}
       </div>
 
-      {visible.length === 0 ? (
+      {tab === "projects" ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="hint">
+              Group projects, approved by both your teacher and the CAS
+              supervisor before they start.
+            </p>
+            {!user.graduated && (
+              <Link href="/projects/new" className="btn btn-primary btn-sm">
+                + New CAS project
+              </Link>
+            )}
+          </div>
+
+          {projects.length === 0 ? (
+            <div className="card p-10 text-center">
+              <p className="font-semibold">No CAS projects yet</p>
+              <p className="mt-1 text-sm text-muted">
+                A CAS project is planned with up to six other students and needs
+                two approvals before it starts.
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {projects.map((project) => (
+                <ProjectRow key={project._id} project={project} />
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : visible.length === 0 ? (
         <div className="card p-10 text-center">
           <p className="font-semibold">Nothing here yet</p>
           <p className="mt-1 text-sm text-muted">
