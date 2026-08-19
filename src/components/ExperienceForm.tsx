@@ -656,27 +656,27 @@ function SaveIndicator({
     ? lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : null;
 
-  const label =
-    state === "saving"
-      ? "Saving…"
-      : state === "error"
-        ? "Saved on this device — could not reach the server"
-        : state === "saved"
-          ? `Draft saved${time ? ` at ${time}` : ""}`
-          : onServer
-            ? "Unsaved changes…"
-            : "Kept on this device until you continue";
+  // Amber while a save is in flight, green once it has landed, red if the
+  // server could not be reached (the local copy is still safe).
+  const pending = state === "dirty" || state === "saving";
+  const tone = pending ? "pending" : state === "error" ? "error" : "saved";
+
+  const label = pending
+    ? "Saving…"
+    : state === "error"
+      ? "Saved locally — could not reach the server"
+      : onServer
+        ? `Draft saved${time ? ` at ${time}` : ""}`
+        : "Saved locally";
 
   return (
     <p
       aria-live="polite"
-      className={`hint flex items-center gap-1.5 ${
+      className={`hint flex items-center gap-2 ${
         state === "error" ? "text-danger" : ""
       }`}
     >
-      <span aria-hidden>
-        {state === "saving" ? "◌" : state === "error" ? "!" : state === "saved" ? "✓" : "•"}
-      </span>
+      <span aria-hidden className={`save-dot save-dot-${tone}`} />
       {label}
     </p>
   );

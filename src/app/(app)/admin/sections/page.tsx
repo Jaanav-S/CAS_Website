@@ -4,7 +4,9 @@ import { Section } from "@/models/Section";
 import { User } from "@/models/User";
 import { plain } from "@/lib/serialize";
 import { academicYears } from "@/lib/constants";
+import { promotionOverview } from "@/lib/promotion";
 import { CreateSection } from "./CreateSection";
+import { PromotionPanel } from "./PromotionPanel";
 import { SectionCard, type SectionView, type TeacherOption } from "./SectionCard";
 
 export const metadata = { title: "Sections" };
@@ -13,7 +15,7 @@ export default async function AdminSectionsPage() {
   await requireRole("admin");
   await dbConnect();
 
-  const [sectionDocs, teacherDocs, memberCounts] = await Promise.all([
+  const [sectionDocs, teacherDocs, memberCounts, promotion] = await Promise.all([
     Section.find()
       .populate("teachers", "name email")
       .sort({ dpYear: 1, year: -1, name: 1 })
@@ -26,6 +28,7 @@ export default async function AdminSectionsPage() {
       { $match: { role: "student", status: "approved" } },
       { $group: { _id: "$section", count: { $sum: 1 } } },
     ]),
+    promotionOverview(),
   ]);
 
   const counts = new Map(memberCounts.map((row) => [String(row._id), row.count]));
@@ -40,6 +43,8 @@ export default async function AdminSectionsPage() {
           A section groups students with the teachers who review their work.
         </p>
       </div>
+
+      <PromotionPanel data={promotion} />
 
       <CreateSection years={academicYears()} />
 

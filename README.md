@@ -143,7 +143,11 @@ sequence stays on the experience's feedback timeline. Nothing is deleted.
 Students never lose a half-written reflection. Every keystroke goes into
 `localStorage` immediately, and a debounced write goes to the server about a
 second and a half after they stop typing — the header shows *Draft saved at
-17:56*.
+17:56*, or *Saved locally* before the draft exists on the server.
+
+A dot next to the message shows the state at a glance: **amber and pulsing**
+while a save is in flight, **green** once it has landed, **red** if the server
+could not be reached. It never shows green for work that is not saved.
 
 - **Tab crashes, browser closes, laptop dies** → reopening the form restores
   what they had, with a banner offering to discard it.
@@ -191,6 +195,28 @@ still sign in, read Discovery and look over their own record, but can no longer
 create, edit, submit or upload — the API refuses it and the buttons disappear.
 They also drop off their teacher's class overview. It is reversible with
 *Un-graduate*.
+
+### Rolling the year over
+
+Sections → **Open promotion panel** does the whole end-of-year move in two
+steps, in this order:
+
+1. **Graduate the DP2 batch.** Lists every student currently sitting in a DP2
+   section and graduates them in one click, behind a confirmation showing the
+   names.
+2. **Move DP1 into their DP2 sections.** One picker per DP2 section, listing
+   only DP1 students who have not been placed yet — a name vanishes from the
+   other pickers as soon as you select it, so nobody can be assigned twice.
+   Everything is applied in a single call.
+
+The order matters: promoting first would put the incoming cohort into DP2, where
+step 1 would then sweep them up. The panel warns if you go back to step 1 after
+promoting, and the API refuses an assignment that lists the same student under
+two sections.
+
+Students moved this way follow exactly the same rules as a single move from the
+Users page — approved work stays with the class it was earned in, unfinished
+work follows the student — because both paths share one function.
 
 ### Progress
 

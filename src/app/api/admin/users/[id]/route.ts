@@ -5,6 +5,7 @@ import { apiUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { Experience } from "@/models/Experience";
+import { moveStudentToSection } from "@/lib/promotion";
 import { Section } from "@/models/Section";
 import { ACCOUNT_STATUSES, ROLES } from "@/lib/constants";
 import { firstIssue } from "@/lib/validation";
@@ -59,15 +60,10 @@ export async function PATCH(
     }
     user.section = sectionId ? new Types.ObjectId(sectionId) : null;
 
-    // Moving a student on — DP1 to DP2, say — hands their *unfinished* work to
-    // the new section's teachers. Approved experiences keep the section and DP
-    // year they were earned under, so the record of what happened in DP1 stays
-    // accurate no matter how many times the student is moved afterwards.
+    // Shared with the end-of-year batch tool, so a single move and a bulk move
+    // treat a student's history identically.
     if (user.role === "student") {
-      await Experience.updateMany(
-        { student: user._id, status: { $in: ["draft", "pending", "rejected"] } },
-        { section: sectionId, dpYear: section?.dpYear ?? null },
-      );
+      await moveStudentToSection(user, sectionId, section);
     }
   }
 

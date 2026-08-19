@@ -105,7 +105,13 @@ export function useAutosave<T>({
     writeSnapshot(key, latest.current);
 
     const push = saveRef.current;
-    if (!push) return;
+    if (!push) {
+      // Nothing to sync to yet — the local write is the whole save, and it
+      // has already happened, so this is genuinely saved.
+      setState("saved");
+      setLastSavedAt(new Date());
+      return;
+    }
 
     setState("saving");
     try {

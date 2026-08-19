@@ -228,6 +228,65 @@ body {
   border-color: color-mix(in srgb, var(--info) 30%, transparent);
 }
 
+/* ---------- autosave status dot ---------- */
+
+.save-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--muted);
+  flex: none;
+  transition: background-color 0.2s ease, box-shadow 0.25s ease;
+}
+
+/* Trying to save: amber, breathing. */
+.save-dot-pending {
+  background: var(--accent);
+  animation: save-pulse 1.1s ease-in-out infinite;
+}
+
+/* Safely stored: green, with a soft halo that settles in. */
+.save-dot-saved {
+  background: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+  animation: save-settle 0.4s ease-out;
+}
+
+.save-dot-error {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 22%, transparent);
+}
+
+@keyframes save-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.75);
+  }
+}
+
+@keyframes save-settle {
+  from {
+    transform: scale(1.6);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 45%, transparent);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .save-dot-pending,
+  .save-dot-saved {
+    animation: none;
+  }
+}
+
 /* ---------- blog typography ---------- */
 
 .prose-blog p {
