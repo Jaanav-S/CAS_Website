@@ -11,10 +11,13 @@ export function ProjectApproval({
   projectId,
   as,
   alreadyDecided,
+  stage = "proposal",
 }: {
   projectId: string;
   as: "teacher" | "supervisor";
   alreadyDecided: "pending" | "approved" | "rejected";
+  /** "proposal" is the go-ahead to start, "completion" the sign-off to publish. */
+  stage?: "proposal" | "completion";
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<"idle" | "rejecting">("idle");
@@ -28,7 +31,7 @@ export function ProjectApproval({
     const res = await fetch(`/api/projects/${projectId}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, comment }),
+      body: JSON.stringify({ action, stage, comment }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -41,7 +44,11 @@ export function ProjectApproval({
     setMode("idle");
   }
 
-  const label = as === "teacher" ? "your approval as the teacher" : "your approval as the CAS supervisor";
+  const who = as === "teacher" ? "the teacher" : "the CAS supervisor";
+  const label =
+    stage === "completion"
+      ? `your sign-off as ${who} that the project is finished`
+      : `your approval as ${who}`;
 
   if (alreadyDecided !== "pending") {
     return (
@@ -51,8 +58,12 @@ export function ProjectApproval({
         </p>
         <p className="hint mt-1">
           {alreadyDecided === "approved"
-            ? "It needs the other approver too before the students can start their timeline."
-            : "The students can edit it and submit it again."}
+            ? stage === "completion"
+              ? "It needs the other approver too before it is published on Discovery."
+              : "It needs the other approver too before the students can start their timeline."
+            : stage === "completion"
+              ? "The students will make your changes and send it back to you. The other approval stays as it is."
+              : "The students can edit it and submit it again."}
         </p>
       </div>
     );
@@ -70,7 +81,11 @@ export function ProjectApproval({
             onClick={() => send("approve")}
             disabled={busy}
           >
-            {busy ? "Saving…" : "Approve project"}
+            {busy
+              ? "Saving…"
+              : stage === "completion"
+                ? "Sign off as finished"
+                : "Approve project"}
           </button>
           <button
             type="button"
@@ -81,8 +96,9 @@ export function ProjectApproval({
             Ask for changes
           </button>
           <p className="hint">
-            A project needs both the teacher and the CAS supervisor before its
-            timeline opens.
+            {stage === "completion"
+              ? "Once you and the other approver both agree, this is published on Discovery."
+              : "A project needs both the teacher and the CAS supervisor before its timeline opens."}
           </p>
         </div>
       ) : (

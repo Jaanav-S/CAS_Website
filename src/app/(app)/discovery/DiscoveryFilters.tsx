@@ -27,10 +27,25 @@ export function DiscoveryFilters({
     router.push(query ? `/discovery?${query}` : "/discovery");
   }
 
-  const active = ["section", "student", "dpYear"].filter((k) => params.get(k));
+  const active = ["kind", "section", "student", "dpYear"].filter((k) =>
+    params.get(k),
+  );
 
   return (
     <div className="card flex flex-wrap items-end gap-4 p-4">
+      <Field label="Showing" htmlFor="filter-kind">
+        <select
+          id="filter-kind"
+          className="select"
+          value={params.get("kind") ?? ""}
+          onChange={(e) => apply("kind", e.target.value)}
+        >
+          <option value="">Everything</option>
+          <option value="reflection">CAS reflections</option>
+          <option value="project">CAS projects</option>
+        </select>
+      </Field>
+
       <Field label="Section" htmlFor="filter-section">
         <select
           id="filter-section"

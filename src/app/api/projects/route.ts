@@ -3,6 +3,7 @@ import { apiUser, canSubmitWork } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { CasProject } from "@/models/CasProject";
 import { User, type UserDoc } from "@/models/User";
+import { Section, type SectionDoc } from "@/models/Section";
 import { resolveMembers } from "@/lib/projects";
 import { firstIssue, projectDraftSchema } from "@/lib/validation";
 
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest) {
 
   await dbConnect();
   const student = await User.findById(user.id).lean<UserDoc>();
+  const section = student?.section
+    ? await Section.findById(student.section).lean<SectionDoc>()
+    : null;
 
   const { memberEmails = [], ...fields } = parsed.data;
   const checked = await resolveMembers(memberEmails, user.id);
@@ -49,6 +53,7 @@ export async function POST(request: NextRequest) {
     owner: user.id,
     members: checked.flatMap((c) => (c.id ? [c.id] : [])),
     section: student?.section ?? null,
+    dpYear: section?.dpYear ?? null,
     status: "draft",
   };
   if (fromDate) payload.fromDate = fromDate;

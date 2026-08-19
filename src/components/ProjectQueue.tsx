@@ -5,8 +5,10 @@ import { ProjectRow } from "@/components/ProjectRow";
 import type { SessionUser } from "@/lib/auth";
 
 const TABS = [
-  { key: "pending", label: "Awaiting approval" },
-  { key: "approved", label: "Approved" },
+  { key: "pending", label: "To approve" },
+  { key: "finished", label: "To sign off as finished" },
+  { key: "approved", label: "Running" },
+  { key: "published", label: "Published" },
   { key: "rejected", label: "Sent back" },
 ];
 
@@ -47,12 +49,16 @@ export async function ProjectQueue({
       {projects.length === 0 ? (
         <div className="card p-10 text-center">
           <p className="font-semibold">
-            {active === "pending" ? "Nothing waiting on you" : "Nothing here"}
+            {active === "pending" || active === "finished"
+              ? "Nothing waiting on you"
+              : "Nothing here"}
           </p>
           <p className="mt-1 text-sm text-muted">
             {active === "pending"
               ? "New CAS project submissions will appear here."
-              : "Try another tab."}
+              : active === "finished"
+                ? "Projects the students have marked finished will appear here."
+                : "Try another tab."}
           </p>
         </div>
       ) : (

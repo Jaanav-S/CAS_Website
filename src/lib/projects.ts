@@ -70,6 +70,38 @@ function refId(value: unknown): string {
   return String(value);
 }
 
+type EditableProject = {
+  status: string;
+  completion?: { status?: string } | null;
+};
+
+/**
+ * When the students may change the project.
+ *
+ * Besides the obvious draft and sent-back cases, a completion rejection
+ * reopens it: they have been told what to fix, so they need to be able to.
+ */
+export function canEditProject(project: EditableProject): boolean {
+  if (project.status === "draft" || project.status === "rejected") return true;
+  return (
+    project.status === "approved" && project.completion?.status === "rejected"
+  );
+}
+
+/** The timeline is open between approval and the completion sign-off. */
+export function canAddTimeline(project: EditableProject): boolean {
+  if (project.status !== "approved") return false;
+  const stage = project.completion?.status ?? "none";
+  return stage === "none" || stage === "rejected";
+}
+
+/** A finished, doubly-approved project is public on Discovery. */
+export function isPublished(project: {
+  completion?: { status?: string } | null;
+}): boolean {
+  return project.completion?.status === "approved";
+}
+
 /** Owner and members alike may read and edit; everything else is read-only. */
 export function isProjectMember(
   project: Pick<CasProjectDoc, "owner" | "members">,
@@ -80,9 +112,13 @@ export function isProjectMember(
 }
 
 export async function canViewProject(
-  project: Pick<CasProjectDoc, "owner" | "members" | "section">,
+  project: Pick<CasProjectDoc, "owner" | "members" | "section"> & {
+    completion?: { status?: string } | null;
+  },
   user: SessionUser,
 ): Promise<boolean> {
+  // Published projects are on Discovery, so anybody signed in may read them.
+  if (isPublished(project)) return true;
   if (user.role === "admin" || user.role === "supervisor") return true;
   if (isProjectMember(project, user.id)) return true;
   if (user.role === "teacher" && project.section) {
@@ -115,7 +151,7 @@ export async function projectsForStudent(userId: string) {
   await dbConnect();
   const id = new mongoose.Types.ObjectId(userId);
   return CasProject.find({ $or: [{ owner: id }, { members: id }] })
-    .select("title status strands fromDate toDate submittedAt updatedAt teacherApproval supervisorApproval timeline owner members section")
+    .select("title status strands fromDate toDate submittedAt updatedAt teacherApproval supervisorApproval completion timeline owner members section")
     .populate("owner", "name email")
     .populate("members", "name email")
     .populate("section", "name year")
@@ -184,11 +220,16 @@ export type ProjectListItem = {
   section?: { name: string; year: string } | null;
   teacherApproval: { status: string; byName?: string };
   supervisorApproval: { status: string; byName?: string };
+  completion?: {
+    status: string;
+    teacher: { status: string };
+    supervisor: { status: string };
+  } | null;
   timeline: unknown[];
 };
 
 const LIST_FIELDS =
-  "title status strands submittedAt updatedAt owner members section teacherApproval supervisorApproval timeline";
+  "title status strands submittedAt updatedAt owner members section teacherApproval supervisorApproval completion timeline";
 
 /**
  * The projects an approver is responsible for: everything for a supervisor or
@@ -200,9 +241,19 @@ export async function projectQueue(
 ): Promise<ProjectListItem[]> {
   await dbConnect();
 
+  // "finished" and "published" describe the completion round rather than the
+  // project's own status, so they are translated here.
   const query: Record<string, unknown> = {};
-  if (status) query.status = status;
-  else query.status = { $ne: "draft" };
+  if (status === "finished") {
+    query["completion.status"] = "pending";
+  } else if (status === "published") {
+    query["completion.status"] = "approved";
+  } else if (status) {
+    query.status = status;
+    if (status === "approved") query["completion.status"] = { $ne: "approved" };
+  } else {
+    query.status = { $ne: "draft" };
+  }
 
   if (user.role === "teacher") {
     const sections = await teacherSectionIds(user.id);

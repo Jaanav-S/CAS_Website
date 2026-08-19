@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { apiUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { CasProject } from "@/models/CasProject";
-import { isProjectMember } from "@/lib/projects";
+import { canAddTimeline, isProjectMember } from "@/lib/projects";
 import { firstIssue, timelineSchema } from "@/lib/validation";
 
 /** Timeline entries open up once both approvers have signed the project off. */
@@ -21,9 +21,17 @@ export async function POST(
   if (!project || !isProjectMember(project, user.id)) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
-  if (project.status !== "approved") {
+  if (!canAddTimeline(project)) {
+    const stage = project.completion?.status ?? "none";
     return NextResponse.json(
-      { error: "The timeline opens once your teacher and CAS supervisor have both approved the project." },
+      {
+        error:
+          stage === "pending"
+            ? "The timeline is locked while your approvers look at the finished project."
+            : stage === "approved"
+              ? "This project is finished and published, so the timeline is closed."
+              : "The timeline opens once your teacher and CAS supervisor have both approved the project.",
+      },
       { status: 409 },
     );
   }
@@ -63,6 +71,13 @@ export async function DELETE(
   const project = await CasProject.findById(id);
   if (!project || !isProjectMember(project, user.id)) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  if (!canAddTimeline(project)) {
+    return NextResponse.json(
+      { error: "The timeline is locked at the moment." },
+      { status: 409 },
+    );
   }
 
   const entry = project.timeline.find((e) => String(e._id) === entryId);

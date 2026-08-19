@@ -27,13 +27,18 @@ export function ProjectTimeline({
   canAdd,
   viewerId,
   locked,
+  frozen = false,
+  frozenReason,
 }: {
   projectId: string;
   entries: TimelineEntryView[];
   canAdd: boolean;
   viewerId: string;
-  /** True until both approvers have signed off. */
+  /** True until both approvers have signed off on the proposal. */
   locked: boolean;
+  /** Running, but temporarily closed: under completion review, or published. */
+  frozen?: boolean;
+  frozenReason?: string;
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
@@ -101,6 +106,12 @@ export function ProjectTimeline({
           </button>
         )}
       </div>
+
+      {!locked && frozen && frozenReason && (
+        <p className="rounded-lg border bg-surface-2 px-3 py-2 text-sm text-muted">
+          {frozenReason}
+        </p>
+      )}
 
       {locked && (
         <div className="card p-6 text-center">

@@ -166,10 +166,15 @@ enforced when the student submits, not while they type.
 
 ### Discovery
 
-Every approved reflection is published to Discovery, filterable by **section**,
-**student** and **DP year**. The filters combine and live in the query string,
-so a filtered view can be linked to. Only values that actually have posts
-behind them appear in the dropdowns.
+Discovery carries two kinds of thing: approved **reflections** and finished,
+doubly-signed-off **CAS projects**. Filter by **kind** (reflections / projects /
+everything), **section**, **student** and **DP year**. The filters combine and
+live in the query string, so a filtered view can be linked to. Only values that
+actually have something published behind them appear in the dropdowns.
+
+A project card is covered by its earliest timeline photo and credits every
+member; filtering by student finds a project if that student is on it, not only
+if they created it.
 
 ### DP1 → DP2, and graduating
 
@@ -224,6 +229,25 @@ whole project back with a reason, and resubmitting resets both sign-offs.
 date, a description and a photo — all three. Any member can add entries and
 remove their own; the teacher and CAS supervisor can read the timeline but not
 edit it.
+
+**Finishing.** When the students are done, any member hits *Mark project as
+done* (it needs at least one timeline entry). That opens a **second, separate**
+approval round with the same two people, and the project and its timeline lock
+while they look.
+
+The resubmission rule differs from the first round on purpose:
+
+|                          | To start                        | To finish                                   |
+| ------------------------ | ------------------------------- | ------------------------------------------- |
+| One approver rejects     | whole project sent back          | whole project sent back                      |
+| On resubmission          | **both** approvals start over    | **only the rejecter** is asked again         |
+
+So if the supervisor has already signed off and the teacher asks for changes,
+the supervisor's yes stands — the students fix what the teacher said and it
+goes back to the teacher alone. The page tells them exactly that.
+
+Once both sign off, the project is **published to Discovery** for the whole
+school, and it freezes: no more edits, no more timeline entries.
 
 **Contacting the students.** On a project, staff get shortcuts to Google
 Calendar (prefilled with every member as a guest) and Gmail (addressed to all of

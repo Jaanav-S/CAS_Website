@@ -188,6 +188,8 @@ export const timelineSchema = z.object({
 export const projectReviewSchema = z
   .object({
     action: z.enum(["approve", "reject"]),
+    /** "proposal" is the sign-off to start; "completion" is the sign-off to finish. */
+    stage: z.enum(["proposal", "completion"]).default("proposal"),
     comment: z.string().trim().default(""),
   })
   .refine((d) => d.action === "approve" || d.comment.length >= 5, {

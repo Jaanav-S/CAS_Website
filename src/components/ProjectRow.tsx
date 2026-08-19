@@ -35,12 +35,28 @@ export function ProjectRow({ project }: { project: ProjectListItem }) {
                 {s}
               </span>
             ))}
-            <span className={`badge ${PIP[project.teacherApproval.status]}`}>
-              Teacher
-            </span>
-            <span className={`badge ${PIP[project.supervisorApproval.status]}`}>
-              Supervisor
-            </span>
+            {project.completion && project.completion.status !== "none" ? (
+              <>
+                <span className={`badge ${PIP[project.completion.teacher.status]}`}>
+                  Teacher · finished
+                </span>
+                <span className={`badge ${PIP[project.completion.supervisor.status]}`}>
+                  Supervisor · finished
+                </span>
+                {project.completion.status === "approved" && (
+                  <span className="badge badge-approved">Published</span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className={`badge ${PIP[project.teacherApproval.status]}`}>
+                  Teacher
+                </span>
+                <span className={`badge ${PIP[project.supervisorApproval.status]}`}>
+                  Supervisor
+                </span>
+              </>
+            )}
             {project.timeline.length > 0 && (
               <span className="badge badge-neutral">
                 {project.timeline.length} timeline entries

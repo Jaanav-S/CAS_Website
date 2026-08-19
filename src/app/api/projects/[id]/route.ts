@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { apiUser, canSubmitWork } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { CasProject } from "@/models/CasProject";
-import { isProjectMember, resolveMembers } from "@/lib/projects";
+import { canEditProject, isProjectMember, resolveMembers } from "@/lib/projects";
 import { firstIssue, onlySubmitted, projectDraftSchema } from "@/lib/validation";
 
 /**
@@ -29,9 +29,14 @@ export async function PATCH(
   if (!project || !isProjectMember(project, user.id)) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
-  if (project.status === "pending" || project.status === "approved") {
+  if (!canEditProject(project)) {
     return NextResponse.json(
-      { error: "This project is locked while it is being approved." },
+      {
+        error:
+          project.completion?.status === "approved"
+            ? "This project is finished and published, so it can no longer be changed."
+            : "This project is locked while it is being approved.",
+      },
       { status: 409 },
     );
   }

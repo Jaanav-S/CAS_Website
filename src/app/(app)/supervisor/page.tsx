@@ -44,12 +44,21 @@ export default async function SupervisorPage() {
         .limit(10)
         .lean(),
       CasProject.countDocuments({
-        status: "pending",
-        "supervisorApproval.status": "pending",
+        $or: [
+          { status: "pending", "supervisorApproval.status": "pending" },
+          {
+            "completion.status": "pending",
+            "completion.supervisor.status": "pending",
+          },
+        ],
       }),
     ]);
 
   const projects = Object.fromEntries(projectRows.map((r) => [r._id, r.count]));
+  const [awaitingFinish, published] = await Promise.all([
+    CasProject.countDocuments({ "completion.status": "pending" }),
+    CasProject.countDocuments({ "completion.status": "approved" }),
+  ]);
   const recent = plain(recentDocs as unknown as RecentProject[]);
   const approvedExperiences = await Experience.countDocuments({ status: "approved" });
 
@@ -70,7 +79,7 @@ export default async function SupervisorPage() {
         >
           <span className="badge badge-pending">{awaitingMe}</span>
           <span className="text-sm font-semibold text-accent">
-            CAS project{awaitingMe === 1 ? "" : "s"} waiting for your approval →
+            CAS project{awaitingMe === 1 ? "" : "s"} waiting for your sign-off →
           </span>
         </Link>
       )}
@@ -79,7 +88,7 @@ export default async function SupervisorPage() {
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
           CAS projects
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             label="Awaiting approval"
             value={projects.pending ?? 0}
@@ -102,6 +111,18 @@ export default async function SupervisorPage() {
             label="Still drafts"
             value={projects.draft ?? 0}
             hint="Not submitted yet"
+          />
+          <StatCard
+            label="Finished, to sign off"
+            value={awaitingFinish}
+            tone={awaitingFinish > 0 ? "accent" : "neutral"}
+            href="/supervisor/projects?status=finished"
+          />
+          <StatCard
+            label="Published on Discovery"
+            value={published}
+            tone="brand"
+            href="/supervisor/projects?status=published"
           />
         </div>
       </section>

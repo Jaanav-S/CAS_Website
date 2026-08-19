@@ -37,38 +37,70 @@ export type ProjectView = {
   section?: { name: string; year: string } | null;
   teacherApproval: ProjectApprovalView;
   supervisorApproval: ProjectApprovalView;
+  completion?: {
+    status: "none" | "pending" | "approved" | "rejected";
+    approvedAt?: string | null;
+    teacher: ProjectApprovalView;
+    supervisor: ProjectApprovalView;
+  } | null;
 };
 
+function Pip({
+  label,
+  approval,
+}: {
+  label: string;
+  approval: ProjectApprovalView;
+}) {
+  return (
+    <span
+      className={`badge ${
+        approval.status === "approved"
+          ? "badge-approved"
+          : approval.status === "rejected"
+            ? "badge-rejected"
+            : "badge-pending"
+      }`}
+    >
+      <span aria-hidden>
+        {approval.status === "approved"
+          ? "✓"
+          : approval.status === "rejected"
+            ? "✗"
+            : "…"}
+      </span>
+      {label}
+      {approval.byName ? ` · ${approval.byName}` : ""}
+    </span>
+  );
+}
+
+/** Both rounds at a glance: the go-ahead to start, then the sign-off to finish. */
 export function ApprovalPips({ project }: { project: ProjectView }) {
-  const rows: [string, ProjectApprovalView][] = [
-    ["Teacher", project.teacherApproval],
-    ["CAS supervisor", project.supervisorApproval],
-  ];
+  const stage = project.completion?.status ?? "none";
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {rows.map(([label, approval]) => (
-        <span
-          key={label}
-          className={`badge ${
-            approval.status === "approved"
-              ? "badge-approved"
-              : approval.status === "rejected"
-                ? "badge-rejected"
-                : "badge-pending"
-          }`}
-        >
-          <span aria-hidden>
-            {approval.status === "approved"
-              ? "✓"
-              : approval.status === "rejected"
-                ? "✗"
-                : "…"}
-          </span>
-          {label}
-          {approval.byName ? ` · ${approval.byName}` : ""}
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="hint w-24 font-semibold uppercase tracking-wide">
+          To start
         </span>
-      ))}
+        <Pip label="Teacher" approval={project.teacherApproval} />
+        <Pip label="CAS supervisor" approval={project.supervisorApproval} />
+      </div>
+
+      {stage !== "none" && project.completion && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="hint w-24 font-semibold uppercase tracking-wide">
+            Finished
+          </span>
+          <Pip label="Teacher" approval={project.completion.teacher} />
+          <Pip label="CAS supervisor" approval={project.completion.supervisor} />
+          {stage === "approved" && (
+            <span className="badge badge-approved">Published on Discovery</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -202,20 +234,13 @@ export function ProjectDetail({ project }: { project: ProjectView }) {
         )}
       </section>
 
-      {(project.teacherApproval.comment || project.supervisorApproval.comment) && (
+      {feedback(project).length > 0 && (
         <section className="card p-6">
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
             Approver feedback
           </h2>
           <ul className="mt-4 space-y-3">
-            {(
-              [
-                ["Teacher", project.teacherApproval],
-                ["CAS supervisor", project.supervisorApproval],
-              ] as [string, ProjectApprovalView][]
-            )
-              .filter(([, a]) => a.comment)
-              .map(([label, a]) => (
+            {feedback(project).map(([label, a]) => (
                 <li key={label} className="text-sm">
                   <p className="font-semibold">
                     {a.byName ?? label}{" "}
@@ -238,6 +263,21 @@ export function ProjectDetail({ project }: { project: ProjectView }) {
       )}
     </div>
   );
+}
+
+/** Every comment either round has produced, newest round last. */
+function feedback(project: ProjectView): [string, ProjectApprovalView][] {
+  const rows: [string, ProjectApprovalView][] = [
+    ["Teacher", project.teacherApproval],
+    ["CAS supervisor", project.supervisorApproval],
+  ];
+  if (project.completion && project.completion.status !== "none") {
+    rows.push(
+      ["Teacher (on completion)", project.completion.teacher],
+      ["CAS supervisor (on completion)", project.completion.supervisor],
+    );
+  }
+  return rows.filter(([, a]) => a?.comment);
 }
 
 function Fact({ label, value }: { label: string; value: string }) {

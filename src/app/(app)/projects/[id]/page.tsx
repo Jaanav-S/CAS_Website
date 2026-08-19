@@ -5,6 +5,8 @@ import { plain } from "@/lib/serialize";
 import {
   GOOGLE_CHAT_URL,
   approverRole,
+  canAddTimeline,
+  canEditProject,
   canViewProject,
   gmailComposeUrl,
   googleCalendarUrl,
@@ -18,6 +20,7 @@ import {
 } from "@/components/ProjectDetail";
 import { ProjectTimeline, type TimelineEntryView } from "@/components/ProjectTimeline";
 import { ProjectApproval, ContactActions } from "@/components/ProjectApproval";
+import { MarkDoneButton } from "@/components/CompletionActions";
 import { StatusBadge } from "@/components/StatusBadge";
 import { DeleteProjectButton } from "./DeleteProjectButton";
 import type { ReviewStatus } from "@/lib/constants";
@@ -39,9 +42,20 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
 
   const member = isProjectMember(doc, user.id);
   const role = await approverRole(doc, user);
-  const editable =
-    member && !user.graduated &&
-    (project.status === "draft" || project.status === "rejected");
+  const editable = member && !user.graduated && canEditProject(doc);
+
+  const stage = project.completion?.status ?? "none";
+  const timelineOpen = canAddTimeline(doc);
+  // They may mark it done once it is running, or send it back after changes.
+  const canMarkDone =
+    member && !user.graduated && project.status === "approved" &&
+    (stage === "none" || stage === "rejected");
+  const awaiting =
+    project.completion && stage === "rejected"
+      ? (["teacher", "supervisor"] as const).filter(
+          (side) => project.completion![side].status !== "approved",
+        )
+      : [];
 
   const emails = [project.owner, ...project.members].map((p) => p.email);
   const backHref =
@@ -88,6 +102,23 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
         </p>
       )}
 
+      {stage === "rejected" && member && (
+        <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+          Your finished project was sent back. Make the changes below, then
+          resubmit —{" "}
+          {awaiting.length === 1
+            ? `only your ${awaiting[0] === "teacher" ? "teacher" : "CAS supervisor"} has to look again.`
+            : "both approvers will look again."}
+        </p>
+      )}
+
+      {stage === "pending" && member && (
+        <p className="rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 text-sm text-accent">
+          Your finished project is with your teacher and CAS supervisor. It goes
+          onto Discovery once they both sign it off.
+        </p>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-6">
           <ProjectDetail project={project} />
@@ -95,9 +126,15 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <ProjectTimeline
             projectId={id}
             entries={project.timeline ?? []}
-            canAdd={member && !user.graduated}
+            canAdd={member && !user.graduated && timelineOpen}
             viewerId={user.id}
             locked={project.status !== "approved"}
+            frozen={project.status === "approved" && !timelineOpen}
+            frozenReason={
+              stage === "pending"
+                ? "Locked while your teacher and CAS supervisor review the finished project."
+                : "This project is finished and published, so the timeline is closed."
+            }
           />
         </div>
 
@@ -111,6 +148,23 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
                   ? project.teacherApproval.status
                   : project.supervisorApproval.status
               }
+            />
+          )}
+
+          {role && stage === "pending" && project.completion && (
+            <ProjectApproval
+              projectId={id}
+              as={role}
+              stage="completion"
+              alreadyDecided={project.completion[role].status}
+            />
+          )}
+
+          {canMarkDone && (
+            <MarkDoneButton
+              projectId={id}
+              resubmitting={stage === "rejected"}
+              awaiting={[...awaiting]}
             />
           )}
 

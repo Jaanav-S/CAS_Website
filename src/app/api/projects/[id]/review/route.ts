@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
-import { CasProject, overallStatus } from "@/models/CasProject";
+import { CasProject, completionStatus, overallStatus } from "@/models/CasProject";
 import { approverRole } from "@/lib/projects";
 import { firstIssue, projectReviewSchema } from "@/lib/validation";
 
@@ -35,9 +35,17 @@ export async function POST(
     );
   }
 
-  if (project.status !== "pending") {
+  const { stage } = parsed.data;
+
+  if (stage === "proposal" && project.status !== "pending") {
     return NextResponse.json(
       { error: "This project is not awaiting approval." },
+      { status: 409 },
+    );
+  }
+  if (stage === "completion" && project.completion.status !== "pending") {
+    return NextResponse.json(
+      { error: "This project has not been marked finished." },
       { status: 409 },
     );
   }
@@ -50,11 +58,32 @@ export async function POST(
     at: new Date(),
   };
 
-  if (role === "teacher") project.teacherApproval = decision;
-  else project.supervisorApproval = decision;
+  if (stage === "completion") {
+    if (project.completion[role].status === "approved") {
+      return NextResponse.json(
+        { error: "You have already signed this off." },
+        { status: 409 },
+      );
+    }
+    project.completion[role] = decision;
+    project.completion.status = completionStatus(
+      project.completion.teacher,
+      project.completion.supervisor,
+    );
+    if (project.completion.status === "approved") {
+      project.completion.approvedAt = new Date();
+    }
+  } else {
+    if (role === "teacher") project.teacherApproval = decision;
+    else project.supervisorApproval = decision;
+    project.status = overallStatus(project.teacherApproval, project.supervisorApproval);
+  }
 
-  project.status = overallStatus(project.teacherApproval, project.supervisorApproval);
   await project.save();
 
-  return NextResponse.json({ status: project.status, as: role });
+  return NextResponse.json({
+    status: stage === "completion" ? project.completion.status : project.status,
+    as: role,
+    stage,
+  });
 }
