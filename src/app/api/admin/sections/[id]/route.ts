@@ -28,12 +28,36 @@ export async function PATCH(
   }
 
   await dbConnect();
-  const section = await Section.findByIdAndUpdate(
-    (await ctx.params).id,
-    parsed.data,
-    { new: true },
-  );
+  const { id } = await ctx.params;
+  const before = await Section.findById(id);
+  if (!before) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  const previousTeachers = (before.teachers ?? []).map(String);
+
+  const section = await Section.findByIdAndUpdate(id, parsed.data, { new: true });
   if (!section) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  // Mirror the assignment onto the teachers themselves, so the Section column
+  // on the Users page agrees with who can actually review this section.
+  if (parsed.data.teachers) {
+    const now = parsed.data.teachers;
+    const added = now.filter((t) => !previousTeachers.includes(t));
+    const removed = previousTeachers.filter((t) => !now.includes(t));
+
+    if (added.length) {
+      await User.updateMany(
+        { _id: { $in: added }, $or: [{ section: null }, { section: { $exists: false } }] },
+        { section: section._id },
+      );
+    }
+    if (removed.length) {
+      await User.updateMany(
+        { _id: { $in: removed }, section: section._id },
+        { section: null },
+      );
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
 

@@ -40,6 +40,9 @@ export async function PATCH(
   const user = await User.findById(id);
   if (!user) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
+  const previousRole = user.role;
+  const previousSection = user.section ? String(user.section) : null;
+
   if (parsed.data.status) user.status = parsed.data.status;
   if (parsed.data.role) user.role = parsed.data.role;
   if (parsed.data.rejectionReason !== undefined) {
@@ -54,6 +57,30 @@ export async function PATCH(
     user.section = sectionId ? new Types.ObjectId(sectionId) : null;
     // Keep already-created experiences reviewable by the new section's teachers.
     await Experience.updateMany({ student: user._id }, { section: sectionId });
+  }
+
+  // Section.teachers is what actually grants review access, so putting a
+  // teacher into a section here has to update it too — otherwise the section
+  // shows on their profile but their students never reach the review queue.
+  if (user.role === "teacher") {
+    if (previousSection && previousSection !== String(user.section ?? "")) {
+      await Section.updateOne(
+        { _id: previousSection },
+        { $pull: { teachers: user._id } },
+      );
+    }
+    if (user.section) {
+      await Section.updateOne(
+        { _id: user.section },
+        { $addToSet: { teachers: user._id } },
+      );
+    }
+  } else if (previousRole === "teacher") {
+    // No longer a teacher: they must not keep reviewing anybody.
+    await Section.updateMany(
+      { teachers: user._id },
+      { $pull: { teachers: user._id } },
+    );
   }
 
   await user.save();
