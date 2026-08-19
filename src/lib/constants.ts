@@ -1,0 +1,101 @@
+/**
+ * Domain constants for the CAS programme.
+ * Tweak REQUIREMENTS here if your school's thresholds differ.
+ */
+
+export const STRANDS = ["Creativity", "Activity", "Service"] as const;
+export type Strand = (typeof STRANDS)[number];
+
+export const LEARNING_OUTCOMES = [
+  { id: "LO1", label: "Identify own strengths and develop areas for growth" },
+  {
+    id: "LO2",
+    label:
+      "Demonstrate that challenges have been undertaken, developing new skills",
+  },
+  { id: "LO3", label: "Initiate and plan a CAS experience" },
+  { id: "LO4", label: "Show perseverance and commitment in CAS experience" },
+  {
+    id: "LO5",
+    label: "Demonstrate skills and benefits of working collaboratively",
+  },
+  { id: "LO6", label: "Engagement with issues of global significance" },
+  { id: "LO7", label: "Recognise and consider the ethics of choices and actions" },
+] as const;
+
+export const LO_IDS = LEARNING_OUTCOMES.map((lo) => lo.id);
+
+export const SDGS = [
+  { id: 1, label: "No Poverty" },
+  { id: 2, label: "Zero Hunger" },
+  { id: 3, label: "Good Health and Well-being" },
+  { id: 4, label: "Quality Education" },
+  { id: 5, label: "Gender Equality" },
+  { id: 6, label: "Clean Water and Sanitation" },
+  { id: 7, label: "Affordable and Clean Energy" },
+  { id: 8, label: "Decent Work and Economic Growth" },
+  { id: 9, label: "Industry, Innovation and Infrastructure" },
+  { id: 10, label: "Reduced Inequalities" },
+  { id: 11, label: "Sustainable Cities and Communities" },
+  { id: 12, label: "Responsible Consumption and Production" },
+  { id: 13, label: "Climate Action" },
+  { id: 14, label: "Life Below Water" },
+  { id: 15, label: "Life on Land" },
+  { id: 16, label: "Peace, Justice and Strong Institutions" },
+  { id: 17, label: "Partnerships for the Goals" },
+] as const;
+
+export const LEARNER_PROFILE = [
+  "Inquirers",
+  "Knowledgeable",
+  "Thinkers",
+  "Communicators",
+  "Principled",
+  "Open-minded",
+  "Caring",
+  "Risk-takers",
+  "Balanced",
+  "Reflective",
+] as const;
+
+export const TERMS = ["Term 1", "Term 2", "Term 3"] as const;
+
+export const LOCATIONS = ["In-school", "Out-of-school", "Both"] as const;
+
+/** Status of the CAS experience itself (as opposed to its review status). */
+export const EXPERIENCE_STAGES = ["Planned", "Ongoing", "Completed"] as const;
+
+export const REVIEW_STATUSES = [
+  "draft",
+  "pending",
+  "approved",
+  "rejected",
+] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+export const ROLES = ["student", "teacher", "admin"] as const;
+export type Role = (typeof ROLES)[number];
+
+export const ACCOUNT_STATUSES = ["pending", "approved", "rejected"] as const;
+export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
+
+/** Graduation requirements checked on the student dashboard. */
+export const REQUIREMENTS = {
+  /** Total approved experiences needed. */
+  totalExperiences: 8,
+  /** Minimum approved experiences in each of Creativity / Activity / Service. */
+  perStrand: 1,
+  /** Each learning outcome must be evidenced at least this many times. */
+  perLearningOutcome: 2,
+};
+
+/** Academic years offered in the form dropdown, e.g. "2026-27". */
+export function academicYears(count = 5): string[] {
+  const now = new Date();
+  // An academic year starting in August rolls over to the next label.
+  const startYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return Array.from({ length: count }, (_, i) => {
+    const y = startYear - 1 + i;
+    return `${y}-${String((y + 1) % 100).padStart(2, "0")}`;
+  });
+}
