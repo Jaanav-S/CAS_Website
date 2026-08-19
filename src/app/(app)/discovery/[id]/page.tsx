@@ -2,26 +2,36 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { experienceDetail } from "@/lib/queries";
+import { canModerate } from "@/lib/scope";
 import { BlogView } from "@/components/BlogView";
 import { ProposalFacts } from "@/components/ProposalFacts";
+import { TakedownButton } from "@/components/TakedownButton";
 
 export const metadata = { title: "Reflection" };
 
 export default async function DiscoveryPostPage(
   props: PageProps<"/discovery/[id]">,
 ) {
-  await requireUser();
+  const user = await requireUser();
   const { id } = await props.params;
   const experience = await experienceDetail(id);
 
   // Only approved reflections are published to Discovery.
   if (!experience || experience.status !== "approved") notFound();
 
+  const moderator = await canModerate(user, experience.section?._id);
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Link href="/discovery" className="text-sm font-semibold text-brand hover:underline">
-        ← Discovery
-      </Link>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <Link
+          href="/discovery"
+          className="text-sm font-semibold text-brand hover:underline"
+        >
+          ← Discovery
+        </Link>
+        {moderator && <TakedownButton id={id} redirectTo="/discovery" />}
+      </div>
 
       <BlogView
         headerImage={experience.headerImage}

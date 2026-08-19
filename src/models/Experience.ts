@@ -13,7 +13,7 @@ export interface ReviewNote {
   _id?: mongoose.Types.ObjectId;
   teacher: mongoose.Types.ObjectId;
   teacherName: string;
-  action: "rejected" | "approved";
+  action: "rejected" | "approved" | "takedown";
   comment: string;
   createdAt: Date;
 }
@@ -62,7 +62,11 @@ const ReviewNoteSchema = new Schema<ReviewNote>(
   {
     teacher: { type: Schema.Types.ObjectId, ref: "User", required: true },
     teacherName: { type: String, required: true },
-    action: { type: String, enum: ["rejected", "approved"], required: true },
+    action: {
+      type: String,
+      enum: ["rejected", "approved", "takedown"],
+      required: true,
+    },
     comment: { type: String, default: "" },
     createdAt: { type: Date, default: Date.now },
   },

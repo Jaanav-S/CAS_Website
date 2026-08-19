@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   EXPERIENCE_STAGES,
   LEARNER_PROFILE,
@@ -16,6 +16,14 @@ import { MultiSelect } from "@/components/MultiSelect";
 import { ImageUploader } from "@/components/ImageUploader";
 import { SdgGrid } from "@/components/SdgGrid";
 import { toDateInput } from "@/lib/format";
+import {
+  clearSnapshot,
+  readSnapshot,
+  renameSnapshot,
+  storageKey,
+  useAutosave,
+  type SaveState,
+} from "@/components/useAutosave";
 
 export type Teacher = { id: string; name: string };
 
@@ -50,6 +58,8 @@ type Props = {
   initial?: Partial<ExperienceFormValues>;
   /** Editing a rejected reflection usually wants to open straight on step 2. */
   startStep?: 1 | 2;
+  /** When the server copy was last written, used to spot a newer local draft. */
+  serverUpdatedAt?: string;
 };
 
 function emptyValues(years: string[]): ExperienceFormValues {
@@ -83,18 +93,24 @@ export function ExperienceForm({
   experienceId,
   initial,
   startStep = 1,
+  serverUpdatedAt,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(startStep);
   const [id, setId] = useState<string | undefined>(experienceId);
-  const [values, setValues] = useState<ExperienceFormValues>({
+
+  const serverValues: ExperienceFormValues = {
     ...emptyValues(years),
     ...initial,
     fromDate: toDateInput(initial?.fromDate),
     toDate: toDateInput(initial?.toDate),
-  });
+  };
+
+  const [values, setValues] = useState<ExperienceFormValues>(serverValues);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [restoredAt, setRestoredAt] = useState<Date | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   function set<K extends keyof ExperienceFormValues>(
     key: K,
@@ -103,30 +119,63 @@ export function ExperienceForm({
     setValues((v) => ({ ...v, [key]: value }));
   }
 
-  const proposalPayload = () => ({
-    year: values.year,
-    term: values.term,
-    title: values.title,
-    description: values.description,
-    strands: values.strands,
-    location: values.location,
-    fromDate: values.fromDate,
-    toDate: values.toDate,
-    learningOutcomes: values.learningOutcomes,
-    sdgs: values.sdgs,
-    investigation: values.investigation,
-    learnerProfileAttributes: values.learnerProfileAttributes,
-    learnerProfileNote: values.learnerProfileNote,
-    supervisor: values.supervisor,
-    casAdvisor: values.casAdvisor || null,
-    stage: values.stage,
+  // --- recovery -----------------------------------------------------------
+  // localStorage can only be read on the client, so this runs once after
+  // mount rather than in the initial state.
+  const recovered = useRef(false);
+  useEffect(() => {
+    if (recovered.current) return;
+    recovered.current = true;
+
+    const snapshot = readSnapshot<ExperienceFormValues>(storageKey(experienceId));
+    if (!snapshot) return;
+
+    // Only take the local copy if it is newer than what the server holds —
+    // otherwise a stale tab could resurrect old text.
+    const serverTime = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
+    if (snapshot.savedAt <= serverTime) {
+      clearSnapshot(storageKey(experienceId));
+      return;
+    }
+
+    // localStorage can only be read after mount, so restoring from it is
+    // necessarily a post-mount state update. It runs exactly once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setValues({ ...serverValues, ...snapshot.values });
+    setRestoredAt(new Date(snapshot.savedAt));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [experienceId, serverUpdatedAt]);
+
+  function discardRestored() {
+    setValues(serverValues);
+    setRestoredAt(null);
+    clearSnapshot(storageKey(id));
+  }
+
+  const proposalPayload = (v: ExperienceFormValues) => ({
+    year: v.year,
+    term: v.term,
+    title: v.title,
+    description: v.description,
+    strands: v.strands,
+    location: v.location,
+    fromDate: v.fromDate,
+    toDate: v.toDate,
+    learningOutcomes: v.learningOutcomes,
+    sdgs: v.sdgs,
+    investigation: v.investigation,
+    learnerProfileAttributes: v.learnerProfileAttributes,
+    learnerProfileNote: v.learnerProfileNote,
+    supervisor: v.supervisor,
+    casAdvisor: v.casAdvisor || null,
+    stage: v.stage,
   });
 
-  const blogPayload = () => ({
-    blogTitle: values.blogTitle,
-    blogBody: values.blogBody,
-    headerImage: values.headerImage ?? "",
-    images: values.images,
+  const blogPayload = (v: ExperienceFormValues) => ({
+    blogTitle: v.blogTitle,
+    blogBody: v.blogBody,
+    headerImage: v.headerImage ?? "",
+    images: v.images,
   });
 
   async function call(url: string, body: unknown, method = "POST") {
@@ -140,6 +189,33 @@ export function ExperienceForm({
     return data;
   }
 
+  // --- autosave -----------------------------------------------------------
+  // Only possible against the server once step 1 has created the draft; until
+  // then the hook still keeps a local snapshot.
+  const pushToServer = useCallback(
+    async (v: ExperienceFormValues) => {
+      if (!id) return;
+      const res = await fetch(`/api/experiences/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step: step === 1 ? "proposal" : "blog",
+          autosave: true,
+          data: step === 1 ? proposalPayload(v) : blogPayload(v),
+        }),
+      });
+      if (!res.ok) throw new Error("autosave failed");
+    },
+    [id, step],
+  );
+
+  const autosave = useAutosave({
+    key: storageKey(id),
+    values,
+    save: id ? pushToServer : undefined,
+    enabled: !submitted,
+  });
+
   /** Step 1 -> save the proposal, then move on to the reflection. */
   async function saveProposal(event: React.FormEvent) {
     event.preventDefault();
@@ -149,13 +225,16 @@ export function ExperienceForm({
       if (id) {
         await call(
           `/api/experiences/${id}`,
-          { step: "proposal", data: proposalPayload() },
+          { step: "proposal", data: proposalPayload(values) },
           "PATCH",
         );
       } else {
-        const created = await call("/api/experiences", proposalPayload());
+        const created = await call("/api/experiences", proposalPayload(values));
         setId(created.id);
+        // The local snapshot was filed under "new"; move it onto the real id.
+        renameSnapshot(storageKey(undefined), storageKey(created.id));
       }
+      setRestoredAt(null);
       setStep(2);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -172,15 +251,16 @@ export function ExperienceForm({
     try {
       await call(
         `/api/experiences/${id}`,
-        { step: "blog", data: blogPayload() },
+        { step: "blog", data: blogPayload(values) },
         "PATCH",
       );
       if (submit) {
         await call(`/api/experiences/${id}/submit`, {});
-        router.push("/my-cas?submitted=1");
-      } else {
-        router.push("/my-cas?saved=1");
       }
+      // Safely on the server now, so the local recovery copy can go.
+      setSubmitted(true);
+      clearSnapshot(storageKey(id));
+      router.push(submit ? "/my-cas?submitted=1" : "/my-cas?saved=1");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save.");
@@ -190,7 +270,34 @@ export function ExperienceForm({
 
   return (
     <div className="space-y-6">
-      <Steps step={step} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Steps step={step} />
+        <SaveIndicator
+          state={autosave.state}
+          lastSavedAt={autosave.lastSavedAt}
+          onServer={Boolean(id)}
+        />
+      </div>
+
+      {restoredAt && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-info/30 bg-info-soft px-3 py-2 text-sm">
+          <span className="text-info">
+            Restored what you had written at{" "}
+            {restoredAt.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+            .
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm ml-auto"
+            onClick={discardRestored}
+          >
+            Discard and start from the saved version
+          </button>
+        </div>
+      )}
 
       {error && (
         <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
@@ -517,6 +624,47 @@ export function ExperienceForm({
         </div>
       )}
     </div>
+  );
+}
+
+function SaveIndicator({
+  state,
+  lastSavedAt,
+  onServer,
+}: {
+  state: SaveState;
+  lastSavedAt: Date | null;
+  onServer: boolean;
+}) {
+  if (state === "clean") return null;
+
+  const time = lastSavedAt
+    ? lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  const label =
+    state === "saving"
+      ? "Saving…"
+      : state === "error"
+        ? "Saved on this device — could not reach the server"
+        : state === "saved"
+          ? `Draft saved${time ? ` at ${time}` : ""}`
+          : onServer
+            ? "Unsaved changes…"
+            : "Kept on this device until you continue";
+
+  return (
+    <p
+      aria-live="polite"
+      className={`hint flex items-center gap-1.5 ${
+        state === "error" ? "text-danger" : ""
+      }`}
+    >
+      <span aria-hidden>
+        {state === "saving" ? "◌" : state === "error" ? "!" : state === "saved" ? "✓" : "•"}
+      </span>
+      {label}
+    </p>
   );
 }
 

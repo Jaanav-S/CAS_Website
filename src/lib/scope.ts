@@ -12,3 +12,17 @@ export async function teacherSectionIds(
     .lean<{ _id: mongoose.Types.ObjectId }[]>();
   return sections.map((s) => s._id);
 }
+
+/**
+ * Who may pull a published reflection off Discovery: an admin for anybody, a
+ * teacher only for their own sections.
+ */
+export async function canModerate(
+  user: { id: string; role: string },
+  experienceSectionId: string | null | undefined,
+): Promise<boolean> {
+  if (user.role === "admin") return true;
+  if (user.role !== "teacher" || !experienceSectionId) return false;
+  const sections = (await teacherSectionIds(user.id)).map(String);
+  return sections.includes(String(experienceSectionId));
+}

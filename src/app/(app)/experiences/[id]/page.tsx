@@ -51,8 +51,9 @@ export default async function ExperiencePage(
 
       {experience.status === "rejected" && (
         <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
-          Your teacher asked for changes. Update your reflection and submit it
-          again.
+          {experience.reviewNotes.at(-1)?.action === "takedown"
+            ? "This reflection was taken off Discovery. Update it and submit it again to republish."
+            : "Your teacher asked for changes. Update your reflection and submit it again."}
         </p>
       )}
 

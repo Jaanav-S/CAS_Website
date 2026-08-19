@@ -120,6 +120,35 @@ kept as a timeline on the experience.
 
 Work that is `pending` or `approved` is locked from editing.
 
+### Taking a post down
+
+A teacher can pull any published reflection from **their own section** off
+Discovery; an admin can do it for any section. The control sits on the
+Discovery post itself and in the review screen's sidebar.
+
+A takedown needs a reason. It unpublishes the post and hands it back to the
+student as "needs changes" — so it stops counting towards their progress until
+they fix it and resubmit, at which point re-approving republishes it. The whole
+sequence stays on the experience's feedback timeline. Nothing is deleted.
+
+### Autosave
+
+Students never lose a half-written reflection. Every keystroke goes into
+`localStorage` immediately, and a debounced write goes to the server about a
+second and a half after they stop typing — the header shows *Draft saved at
+17:56*.
+
+- **Tab crashes, browser closes, laptop dies** → reopening the form restores
+  what they had, with a banner offering to discard it.
+- **Logged out, or on another device** → the server draft has everything from
+  the moment step 1 created it.
+- **Connection drops** → the local copy still holds; the indicator says so and
+  the next successful write syncs it.
+
+Because drafts are saved continuously they are allowed to be incomplete: the
+proposal form's rules (title length, at least one strand, and so on) are
+enforced when the student submits, not while they type.
+
 ### Progress
 
 Progress is computed only from **approved** experiences:

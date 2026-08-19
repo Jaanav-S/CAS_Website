@@ -36,22 +36,32 @@ export async function POST(
     }
   }
 
-  if (experience.status !== "pending") {
+  const { action, comment } = parsed.data;
+
+  // A takedown pulls an already-published reflection back off Discovery; the
+  // other two actions are the first pass over a fresh submission.
+  if (action === "takedown") {
+    if (experience.status !== "approved") {
+      return NextResponse.json(
+        { error: "Only a published reflection can be taken down." },
+        { status: 409 },
+      );
+    }
+  } else if (experience.status !== "pending") {
     return NextResponse.json(
       { error: "This experience is not awaiting review." },
       { status: 409 },
     );
   }
 
-  const approved = parsed.data.action === "approve";
-  experience.status = approved ? "approved" : "rejected";
+  experience.status = action === "approve" ? "approved" : "rejected";
   experience.reviewedAt = new Date();
   experience.reviewedBy = new Types.ObjectId(user.id);
   experience.reviewNotes.push({
     teacher: experience.reviewedBy,
     teacherName: user.name,
-    action: approved ? "approved" : "rejected",
-    comment: parsed.data.comment,
+    action: action === "approve" ? "approved" : action === "takedown" ? "takedown" : "rejected",
+    comment,
     createdAt: new Date(),
   });
   await experience.save();

@@ -8,6 +8,7 @@ import { ProposalFacts } from "@/components/ProposalFacts";
 import { ReviewTimeline } from "@/components/ReviewTimeline";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ReviewActions } from "./ReviewActions";
+import { TakedownButton } from "@/components/TakedownButton";
 import { REQUIREMENTS } from "@/lib/constants";
 
 export const metadata = { title: "Review submission" };
@@ -86,15 +87,25 @@ export default async function ReviewPage(
           {experience.status === "pending" ? (
             <ReviewActions id={id} />
           ) : (
-            <div className="card p-5">
-              <p className="text-sm font-semibold">
-                Already {experience.status === "approved" ? "approved" : "sent back"}
-              </p>
-              <p className="hint mt-1">
-                {experience.status === "approved"
-                  ? "This reflection is published on Discovery and counts towards the student's progress."
-                  : "The student can edit and resubmit it."}
-              </p>
+            <div className="card space-y-3 p-5">
+              <div>
+                <p className="text-sm font-semibold">
+                  Already{" "}
+                  {experience.status === "approved" ? "approved" : "sent back"}
+                </p>
+                <p className="hint mt-1">
+                  {experience.status === "approved"
+                    ? "This reflection is published on Discovery and counts towards the student's progress."
+                    : "The student can edit and resubmit it."}
+                </p>
+              </div>
+              {experience.status === "approved" && (
+                <TakedownButton
+                  id={id}
+                  redirectTo="/teacher/review?status=approved"
+                  className="btn btn-ghost btn-sm w-full"
+                />
+              )}
             </div>
           )}
 

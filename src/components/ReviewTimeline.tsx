@@ -3,7 +3,7 @@ import { formatDateTime } from "@/lib/format";
 export type Note = {
   _id?: string;
   teacherName: string;
-  action: "approved" | "rejected";
+  action: "approved" | "rejected" | "takedown";
   comment: string;
   createdAt: string | Date;
 };
@@ -27,13 +27,17 @@ export function ReviewTimeline({ notes }: { notes: Note[] }) {
                   : "bg-danger-soft text-danger"
               }`}
             >
-              {note.action === "approved" ? "✓" : "!"}
+              {note.action === "approved" ? "✓" : note.action === "takedown" ? "⤺" : "!"}
             </span>
             <div className="min-w-0">
               <p className="text-sm">
                 <span className="font-semibold">{note.teacherName}</span>{" "}
                 <span className="text-muted">
-                  {note.action === "approved" ? "approved this" : "asked for changes"}{" "}
+                  {note.action === "approved"
+                    ? "approved this"
+                    : note.action === "takedown"
+                      ? "removed this from Discovery"
+                      : "asked for changes"}{" "}
                   · {formatDateTime(note.createdAt)}
                 </span>
               </p>

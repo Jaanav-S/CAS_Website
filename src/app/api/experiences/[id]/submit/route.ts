@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { apiUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Experience } from "@/models/Experience";
-import { blogSchema, firstIssue } from "@/lib/validation";
+import { blogSchema, firstIssue, proposalSchema } from "@/lib/validation";
 
 /** Step 2 complete: send the reflection to the section teacher for review. */
 export async function POST(
@@ -23,6 +23,33 @@ export async function POST(
     return NextResponse.json(
       { error: "This experience has already been submitted." },
       { status: 409 },
+    );
+  }
+
+  // Drafts are allowed to be incomplete while they are being autosaved, so
+  // both steps are validated in full here, at the point of no return.
+  const proposal = proposalSchema.safeParse({
+    year: experience.year ?? "",
+    term: experience.term,
+    title: experience.title ?? "",
+    description: experience.description ?? "",
+    strands: experience.strands ?? [],
+    location: experience.location,
+    fromDate: experience.fromDate,
+    toDate: experience.toDate,
+    learningOutcomes: experience.learningOutcomes ?? [],
+    sdgs: experience.sdgs ?? [],
+    investigation: experience.investigation ?? "",
+    learnerProfileAttributes: experience.learnerProfileAttributes ?? [],
+    learnerProfileNote: experience.learnerProfileNote ?? "",
+    supervisor: experience.supervisor ?? "",
+    casAdvisor: experience.casAdvisor ? String(experience.casAdvisor) : null,
+    stage: experience.stage,
+  });
+  if (!proposal.success) {
+    return NextResponse.json(
+      { error: `Your proposal form is incomplete — ${firstIssue(proposal.error)}` },
+      { status: 400 },
     );
   }
 

@@ -42,6 +42,7 @@ export default async function EditExperiencePage(
         years={academicYears()}
         teachers={teachers}
         experienceId={id}
+        serverUpdatedAt={experience.updatedAt as unknown as string}
         startStep={experience.status === "rejected" ? 2 : 1}
         initial={{
           year: experience.year,

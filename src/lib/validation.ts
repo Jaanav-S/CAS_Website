@@ -11,7 +11,7 @@ import {
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid id");
 
 /** Step 1 — the CAS experience proposal form. */
-export const proposalSchema = z
+const proposalObject = z
   .object({
     year: z.string().trim().min(4, "Select a year."),
     term: z.enum(TERMS),
@@ -39,11 +39,33 @@ export const proposalSchema = z
     supervisor: z.string().trim().default(""),
     casAdvisor: objectId.nullish(),
     stage: z.enum(EXPERIENCE_STAGES),
-  })
-  .refine((data) => data.toDate >= data.fromDate, {
+  });
+
+export const proposalSchema = proposalObject.refine(
+  (data) => data.toDate >= data.fromDate,
+  {
     message: "The end date cannot be before the start date.",
     path: ["toDate"],
-  });
+  },
+);
+
+/**
+ * Autosave writes whatever the student has typed so far, so every field is
+ * optional and the length rules are relaxed — a half-written draft must always
+ * be storable. The strict rules above are enforced again on submit.
+ */
+export const proposalDraftSchema = proposalObject
+  .extend({
+    year: z.string().trim(),
+    title: z.string().trim(),
+    description: z.string().trim(),
+    strands: z.array(z.enum(STRANDS)),
+    learningOutcomes: z.array(z.enum(LO_IDS as [string, ...string[]])),
+    investigation: z.string().trim(),
+    fromDate: z.coerce.date().nullish(),
+    toDate: z.coerce.date().nullish(),
+  })
+  .partial();
 
 export type ProposalInput = z.infer<typeof proposalSchema>;
 
@@ -58,13 +80,26 @@ export const blogSchema = z.object({
   images: z.array(z.string().trim()).default([]),
 });
 
+/**
+ * Draft writes of the reflection: same fields, none of the length rules, so a
+ * sentence-and-a-half is storable. blogSchema is applied again on submit.
+ */
+export const blogDraftSchema = z
+  .object({
+    blogTitle: z.string().trim(),
+    blogBody: z.string().trim(),
+    headerImage: z.string().trim(),
+    images: z.array(z.string().trim()),
+  })
+  .partial();
+
 export const reviewSchema = z
   .object({
-    action: z.enum(["approve", "reject"]),
+    action: z.enum(["approve", "reject", "takedown"]),
     comment: z.string().trim().default(""),
   })
   .refine((d) => d.action === "approve" || d.comment.length >= 5, {
-    message: "Tell the student what needs to change before rejecting.",
+    message: "Tell the student why, so they know what to change.",
     path: ["comment"],
   });
 

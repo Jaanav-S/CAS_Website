@@ -2,7 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { apiUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Experience } from "@/models/Experience";
-import { blogSchema, firstIssue, proposalSchema } from "@/lib/validation";
+import {
+  blogDraftSchema,
+  firstIssue,
+  proposalDraftSchema,
+  proposalSchema,
+} from "@/lib/validation";
 
 /**
  * Students may edit their own experience while it is a draft or after it has
@@ -30,29 +35,35 @@ export async function PATCH(
   }
 
   const body = await request.json();
+  const autosave = body.autosave === true;
+  let update: Record<string, unknown>;
 
   if (body.step === "proposal") {
-    const parsed = proposalSchema.safeParse(body.data);
+    // Autosaves accept a half-finished form; an explicit save does not.
+    const schema = autosave ? proposalDraftSchema : proposalSchema;
+    const parsed = schema.safeParse(body.data);
     if (!parsed.success) {
       return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
     }
-    experience.set({
-      ...parsed.data,
-      casAdvisor: parsed.data.casAdvisor || null,
-    });
+    update = { ...parsed.data };
+    if ("casAdvisor" in update) update.casAdvisor = update.casAdvisor || null;
   } else if (body.step === "blog") {
-    // Partial saves are allowed here; completeness is enforced on submit.
-    const parsed = blogSchema.partial().safeParse(body.data);
+    // Draft writes are lenient in both directions — "Save draft" and autosave
+    // must both accept a reflection that is only half written.
+    const parsed = blogDraftSchema.safeParse(body.data);
     if (!parsed.success) {
       return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
     }
-    experience.set(parsed.data);
+    update = { ...parsed.data };
   } else {
     return NextResponse.json({ error: "Unknown step." }, { status: 400 });
   }
 
-  await experience.save();
-  return NextResponse.json({ ok: true });
+  // Written with $set rather than save() so an incomplete draft is storable —
+  // the schema's required fields are re-checked when the student submits.
+  await Experience.updateOne({ _id: experience._id }, { $set: update });
+
+  return NextResponse.json({ ok: true, savedAt: new Date().toISOString() });
 }
 
 export async function DELETE(
