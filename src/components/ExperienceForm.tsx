@@ -20,6 +20,7 @@ import {
   clearSnapshot,
   readSnapshot,
   renameSnapshot,
+  sameValues,
   storageKey,
   useAutosave,
   type SaveState,
@@ -134,10 +135,17 @@ export function ExperienceForm({
     const snapshot = readSnapshot<ExperienceFormValues>(storageKey(experienceId));
     if (!snapshot) return;
 
-    // Only take the local copy if it is newer than what the server holds —
-    // otherwise a stale tab could resurrect old text.
+    // Ignore a snapshot the server has since overtaken — otherwise a stale
+    // tab could resurrect old text.
     const serverTime = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
     if (snapshot.savedAt <= serverTime) {
+      clearSnapshot(storageKey(experienceId));
+      return;
+    }
+
+    // Nothing was actually lost — say nothing rather than cry wolf.
+    const merged = { ...serverValues, ...snapshot.values };
+    if (sameValues(merged, serverValues)) {
       clearSnapshot(storageKey(experienceId));
       return;
     }
@@ -145,7 +153,7 @@ export function ExperienceForm({
     // localStorage can only be read after mount, so restoring from it is
     // necessarily a post-mount state update. It runs exactly once.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setValues({ ...serverValues, ...snapshot.values });
+    setValues(merged);
     setRestoredAt(new Date(snapshot.savedAt));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [experienceId, serverUpdatedAt]);

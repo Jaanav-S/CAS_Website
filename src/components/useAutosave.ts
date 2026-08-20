@@ -44,6 +44,22 @@ export function clearSnapshot(key: string): void {
   }
 }
 
+/**
+ * Whether two sets of form values are the same.
+ *
+ * Timestamps alone cannot decide if a local snapshot is worth restoring: the
+ * flush on tab-close writes the snapshot *after* the last server save, so an
+ * untouched form always looks "newer" than the server. Comparing the content
+ * is what actually answers "are there unsaved changes?".
+ */
+export function sameValues<T extends object>(a: T, b: T): boolean {
+  const stable = (v: T) =>
+    JSON.stringify(
+      Object.fromEntries(Object.entries(v).sort(([x], [y]) => x.localeCompare(y))),
+    );
+  return stable(a) === stable(b);
+}
+
 /** Moves the "new" snapshot onto the id the server just handed back. */
 export function renameSnapshot(from: string, to: string): void {
   const snapshot = readSnapshot(from);

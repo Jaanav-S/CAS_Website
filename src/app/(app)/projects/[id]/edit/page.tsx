@@ -42,6 +42,7 @@ export default async function EditProjectPage(
       <ProjectForm
         supervisors={supervisors}
         projectId={id}
+        serverUpdatedAt={project.updatedAt as string}
         isOwner={project.owner._id === user.id}
         initial={{
           title: String(project.title ?? ""),

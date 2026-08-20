@@ -1,13 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PROJECT_STAGES, STRANDS } from "@/lib/constants";
 import { MultiSelect } from "@/components/MultiSelect";
 import { MemberPicker } from "@/components/MemberPicker";
 import { toDateInput } from "@/lib/format";
-import { storageKey, useAutosave, type SaveState } from "@/components/useAutosave";
-import { clearSnapshot, renameSnapshot } from "@/components/useAutosave";
+import {
+  clearSnapshot,
+  readSnapshot,
+  renameSnapshot,
+  sameValues,
+  storageKey,
+  useAutosave,
+  type SaveState,
+} from "@/components/useAutosave";
 
 export type Supervisor = { id: string; name: string };
 
@@ -68,30 +75,75 @@ export function ProjectForm({
   projectId,
   initial,
   isOwner = true,
+  serverUpdatedAt,
 }: {
   supervisors: Supervisor[];
   projectId?: string;
   initial?: Partial<ProjectFormValues>;
   /** Only the creator may change who is on the project. */
   isOwner?: boolean;
+  /** When the server copy was last written, used to spot a newer local draft. */
+  serverUpdatedAt?: string;
 }) {
   const router = useRouter();
   const [id, setId] = useState<string | undefined>(projectId);
-  const [values, setValues] = useState<ProjectFormValues>({
+
+  const serverValues: ProjectFormValues = {
     ...emptyValues(),
     ...initial,
     fromDate: toDateInput(initial?.fromDate),
     toDate: toDateInput(initial?.toDate),
-  });
+  };
+
+  const [values, setValues] = useState<ProjectFormValues>(serverValues);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [restoredAt, setRestoredAt] = useState<Date | null>(null);
 
   function set<K extends keyof ProjectFormValues>(
     key: K,
     value: ProjectFormValues[K],
   ) {
     setValues((v) => ({ ...v, [key]: value }));
+  }
+
+  // --- recovery -----------------------------------------------------------
+  // localStorage can only be read on the client, so this runs once after
+  // mount rather than in the initial state.
+  const recovered = useRef(false);
+  useEffect(() => {
+    if (recovered.current) return;
+    recovered.current = true;
+
+    const key = storageKey(projectId ? `project-${projectId}` : "project-new");
+    const snapshot = readSnapshot<ProjectFormValues>(key);
+    if (!snapshot) return;
+
+    // Ignore a snapshot the server has since overtaken.
+    const serverTime = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
+    if (snapshot.savedAt <= serverTime) {
+      clearSnapshot(key);
+      return;
+    }
+
+    // Nothing was actually lost — say nothing rather than cry wolf.
+    const merged = { ...serverValues, ...snapshot.values };
+    if (sameValues(merged, serverValues)) {
+      clearSnapshot(key);
+      return;
+    }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setValues(merged);
+    setRestoredAt(new Date(snapshot.savedAt));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, serverUpdatedAt]);
+
+  function discardRestored() {
+    setValues(serverValues);
+    setRestoredAt(null);
+    clearSnapshot(storageKey(id ? `project-${id}` : "project-new"));
   }
 
   const payload = (v: ProjectFormValues) => ({
@@ -168,6 +220,7 @@ export function ProjectForm({
           storageKey("project-new"),
           storageKey(`project-${projectKey}`),
         );
+        setRestoredAt(null);
       }
 
       if (submit) await call(`/api/projects/${projectKey}/submit`, {});
@@ -195,6 +248,26 @@ export function ProjectForm({
           onServer={Boolean(id)}
         />
       </div>
+
+      {restoredAt && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-info/30 bg-info-soft px-3 py-2 text-sm">
+          <span className="text-info">
+            Restored what you had written at{" "}
+            {restoredAt.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+            .
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm ml-auto"
+            onClick={discardRestored}
+          >
+            Discard and start from the saved version
+          </button>
+        </div>
+      )}
 
       {error && (
         <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
