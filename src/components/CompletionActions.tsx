@@ -48,9 +48,9 @@ export function MarkDoneButton({
       <p className="hint mt-1">
         {resubmitting
           ? awaiting.length === 1
-            ? `Only your ${awaiting[0] === "teacher" ? "teacher" : "CAS supervisor"} needs to look again — the other approval still stands.`
+            ? `Only your ${awaiting[0] === "teacher" ? "teacher" : "CAS coordinator"} needs to look again — the other approval still stands.`
             : "Both approvers will look at it again."
-          : "Marking it done sends it to your teacher and CAS supervisor. Once both agree, it is published on Discovery for the whole school."}
+          : "Marking it done sends it to your teacher and CAS coordinator. Once both agree, it is published on Discovery for the whole school."}
       </p>
 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}

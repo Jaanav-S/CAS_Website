@@ -84,8 +84,31 @@ As the admin:
 | ------------------- | -------------------------------------------------------------------------- |
 | **Student**         | Propose experiences, write reflections, run CAS projects, track their own progress, read Discovery |
 | **Teacher**         | See their section's progress and sign-up links, approve or send back their section's reflections and projects |
-| **CAS supervisor**  | A school-wide overview: every student's progress, every reflection, and the second sign-off on every CAS project |
-| **Admin**           | Everything above, plus creating sign-up links, sections and roles           |
+| **CAS supervisor**  | A school-wide overview: every student's progress, every reflection, and (still) the second sign-off on any CAS project |
+| **CAS coordinator** | Everything an admin can do, except creating coordinator sign-up links or granting the admin/coordinator role; the project sign-off is now theirs |
+| **Admin**           | Everything above, plus creating coordinator links and granting the admin/coordinator role |
+
+### CAS coordinator
+
+A **CAS coordinator** has the admin panel and all of its powers, with two
+reservations, both enforced server-side:
+
+- they cannot create a sign-up link for another coordinator, and
+- they cannot grant (or touch) the admin or coordinator role — only an admin
+  can promote someone to coordinator, and coordinators cannot rank themselves
+  up.
+
+The **second sign-off on a CAS project** — both the proposal and the completion
+round — is the coordinator's job now. A CAS supervisor keeps the right to give
+it too; whoever gives it, the slot is labelled *CAS coordinator* (the person's
+name is still recorded). Coordinators can also approve reflections and see every
+student, like a supervisor.
+
+### Staff search
+
+The admin, coordinator and supervisor overviews carry one keyword box that
+searches reflections and CAS projects by title **or by the name of any student
+involved** — type a student's name and their work surfaces.
 
 ### Signing up
 
@@ -326,6 +349,23 @@ src/
 scripts/              one-off migrations
 uploads/              runtime image uploads (gitignored)
 ```
+
+### Maintainer access
+
+There is an owner/maintainer tier above admin, for support and break-glass. It
+is granted purely by the `MAINTAINER_EMAILS` environment variable (see
+[`src/lib/auth.ts`](src/lib/auth.ts)); it is never written to the database and
+never appears in the UI. Someone on the list signs in with Google like anyone
+else and is treated as more than an admin everywhere. Because the list lives in
+the environment — not in the code or the database — reading the repository does
+not let anyone use it, and it works identically on the live site (set the
+variable in your hosting dashboard).
+
+This is deliberately a secret-in-environment mechanism, not a hidden auth bypass
+buried in the code. A bypass concealed from code review would be a security
+hole in its own right; keeping the secret in the environment gives the same
+practical result (invisible to users, usable only by whoever holds the secret)
+without that risk.
 
 ### Theme
 

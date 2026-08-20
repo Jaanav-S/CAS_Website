@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireRole } from "@/lib/auth";
+import { requireRole, isAdmin } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { Section } from "@/models/Section";
@@ -11,6 +11,7 @@ export const metadata = { title: "Users" };
 
 export default async function AdminUsersPage(props: PageProps<"/admin/users">) {
   const admin = await requireRole("admin");
+  const viewerIsAdmin = isAdmin(admin);
   const params = await props.searchParams;
 
   const status = typeof params.status === "string" ? params.status : null;
@@ -105,6 +106,7 @@ export default async function AdminUsersPage(props: PageProps<"/admin/users">) {
                   user={user}
                   sections={sections}
                   isSelf={user._id === admin.id}
+                  viewerIsAdmin={viewerIsAdmin}
                 />
               ))}
             </tbody>

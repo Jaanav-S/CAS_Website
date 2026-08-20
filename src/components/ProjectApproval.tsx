@@ -44,7 +44,7 @@ export function ProjectApproval({
     setMode("idle");
   }
 
-  const who = as === "teacher" ? "the teacher" : "the CAS supervisor";
+  const who = as === "teacher" ? "the teacher" : "the CAS coordinator";
   const label =
     stage === "completion"
       ? `your sign-off as ${who} that the project is finished`
@@ -98,7 +98,7 @@ export function ProjectApproval({
           <p className="hint">
             {stage === "completion"
               ? "Once you and the other approver both agree, this is published on Discovery."
-              : "A project needs both the teacher and the CAS supervisor before its timeline opens."}
+              : "A project needs both the teacher and the CAS coordinator before its timeline opens."}
           </p>
         </div>
       ) : (

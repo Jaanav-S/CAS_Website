@@ -84,13 +84,14 @@ export const REVIEW_STATUSES = [
 ] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
-export const ROLES = ["student", "teacher", "supervisor", "admin"] as const;
+export const ROLES = ["student", "teacher", "supervisor", "coordinator", "admin"] as const;
 
 /** Human labels for roles — "supervisor" is the CAS supervisor/coordinator. */
 export const ROLE_LABELS: Record<string, string> = {
   student: "Student",
   teacher: "Teacher",
   supervisor: "CAS supervisor",
+  coordinator: "CAS coordinator",
   admin: "Admin",
 };
 export type Role = (typeof ROLES)[number];

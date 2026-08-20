@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { apiUser } from "@/lib/auth";
+import { apiUser, isAdmin } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Invite } from "@/models/Invite";
 import { Section } from "@/models/Section";
@@ -9,8 +9,9 @@ import { firstIssue } from "@/lib/validation";
 
 const schema = z
   .object({
-    // Admins are deliberately not invitable by link; promote someone instead.
-    role: z.enum(["student", "teacher", "supervisor"]),
+    // Admins are never invitable by link; a coordinator link is admin-only
+    // (checked below), so a coordinator cannot create more coordinators.
+    role: z.enum(["student", "teacher", "supervisor", "coordinator"]),
     section: z
       .union([z.string().regex(/^[0-9a-fA-F]{24}$/), z.literal("")])
       .optional(),
@@ -28,12 +29,21 @@ const schema = z
 
 /** Creates a sign-up link. Its capacity is what makes it expire. */
 export async function POST(request: NextRequest) {
+  // Coordinators reach the admin panel, so the route admits them.
   const admin = await apiUser("admin");
   if (!admin) return NextResponse.json({ error: "Not allowed." }, { status: 403 });
 
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
+  }
+
+  // Only a full admin may mint a link that creates another CAS coordinator.
+  if (parsed.data.role === "coordinator" && !isAdmin(admin)) {
+    return NextResponse.json(
+      { error: "Only an admin can create a CAS coordinator link." },
+      { status: 403 },
+    );
   }
 
   await dbConnect();
@@ -46,8 +56,11 @@ export async function POST(request: NextRequest) {
   await Invite.create({
     token,
     role: parsed.data.role,
-    // A CAS supervisor belongs to the whole school, not one section.
-    section: parsed.data.role === "supervisor" ? null : sectionId,
+    // Only students and teachers belong to a section.
+    section:
+      parsed.data.role === "student" || parsed.data.role === "teacher"
+        ? sectionId
+        : null,
     capacity: parsed.data.capacity,
     label: parsed.data.label,
     createdBy: admin.id,

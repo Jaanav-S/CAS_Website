@@ -86,7 +86,7 @@ export function ApprovalPips({ project }: { project: ProjectView }) {
           To start
         </span>
         <Pip label="Teacher" approval={project.teacherApproval} />
-        <Pip label="CAS supervisor" approval={project.supervisorApproval} />
+        <Pip label="CAS coordinator" approval={project.supervisorApproval} />
       </div>
 
       {stage !== "none" && project.completion && (
@@ -95,7 +95,7 @@ export function ApprovalPips({ project }: { project: ProjectView }) {
             Finished
           </span>
           <Pip label="Teacher" approval={project.completion.teacher} />
-          <Pip label="CAS supervisor" approval={project.completion.supervisor} />
+          <Pip label="CAS coordinator" approval={project.completion.supervisor} />
           {stage === "approved" && (
             <span className="badge badge-approved">Published on Discovery</span>
           )}
@@ -269,12 +269,12 @@ export function ProjectDetail({ project }: { project: ProjectView }) {
 function feedback(project: ProjectView): [string, ProjectApprovalView][] {
   const rows: [string, ProjectApprovalView][] = [
     ["Teacher", project.teacherApproval],
-    ["CAS supervisor", project.supervisorApproval],
+    ["CAS coordinator", project.supervisorApproval],
   ];
   if (project.completion && project.completion.status !== "none") {
     rows.push(
       ["Teacher (on completion)", project.completion.teacher],
-      ["CAS supervisor (on completion)", project.completion.supervisor],
+      ["CAS coordinator (on completion)", project.completion.supervisor],
     );
   }
   return rows.filter(([, a]) => a?.comment);

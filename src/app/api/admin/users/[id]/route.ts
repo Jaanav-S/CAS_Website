@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { apiUser } from "@/lib/auth";
+import { apiUser, isAdmin } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { Experience } from "@/models/Experience";
@@ -31,9 +31,9 @@ export async function PATCH(
   }
 
   const { id } = await ctx.params;
-  if (id === admin.id && parsed.data.role && parsed.data.role !== "admin") {
+  if (id === admin.id && parsed.data.role && parsed.data.role !== admin.role) {
     return NextResponse.json(
-      { error: "You cannot remove your own admin role." },
+      { error: "You cannot change your own role." },
       { status: 400 },
     );
   }
@@ -41,6 +41,25 @@ export async function PATCH(
   await dbConnect();
   const user = await User.findById(id);
   if (!user) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  // The admin/coordinator tier can only be granted or removed by a full admin
+  // (or the maintainer). A coordinator manages students, teachers and
+  // supervisors, and cannot touch anyone who is already admin or coordinator.
+  if (!isAdmin(admin)) {
+    const senior = (r: string) => r === "admin" || r === "coordinator";
+    if (parsed.data.role && senior(parsed.data.role)) {
+      return NextResponse.json(
+        { error: "Only an admin can grant the admin or coordinator role." },
+        { status: 403 },
+      );
+    }
+    if (senior(user.role)) {
+      return NextResponse.json(
+        { error: "Only an admin can change an admin or coordinator account." },
+        { status: 403 },
+      );
+    }
+  }
 
   const previousRole = user.role;
   const previousSection = user.section ? String(user.section) : null;
@@ -111,6 +130,17 @@ export async function DELETE(
   }
 
   await dbConnect();
+  const target = await User.findById(id).select("role").lean<{ role: string }>();
+  if (!target) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  // A coordinator cannot delete an admin or another coordinator.
+  if (!isAdmin(admin) && (target.role === "admin" || target.role === "coordinator")) {
+    return NextResponse.json(
+      { error: "Only an admin can delete an admin or coordinator account." },
+      { status: 403 },
+    );
+  }
+
   await Experience.deleteMany({ student: id });
   await Section.updateMany({ teachers: id }, { $pull: { teachers: id } });
   await User.findByIdAndDelete(id);

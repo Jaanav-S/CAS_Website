@@ -107,14 +107,14 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           Your finished project was sent back. Make the changes below, then
           resubmit —{" "}
           {awaiting.length === 1
-            ? `only your ${awaiting[0] === "teacher" ? "teacher" : "CAS supervisor"} has to look again.`
+            ? `only your ${awaiting[0] === "teacher" ? "teacher" : "CAS coordinator"} has to look again.`
             : "both approvers will look again."}
         </p>
       )}
 
       {stage === "pending" && member && (
         <p className="rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 text-sm text-accent">
-          Your finished project is with your teacher and CAS supervisor. It goes
+          Your finished project is with your teacher and CAS coordinator. It goes
           onto Discovery once they both sign it off.
         </p>
       )}
@@ -132,7 +132,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
             frozen={project.status === "approved" && !timelineOpen}
             frozenReason={
               stage === "pending"
-                ? "Locked while your teacher and CAS supervisor review the finished project."
+                ? "Locked while your teacher and CAS coordinator review the finished project."
                 : "This project is finished and published, so the timeline is closed."
             }
           />
@@ -168,7 +168,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
             />
           )}
 
-          {(user.role === "supervisor" || user.role === "admin" || user.role === "teacher") && (
+          {(role !== null || user.developer) && (
             <ContactActions
               calendarUrl={googleCalendarUrl(emails, project.title)}
               chatUrl={GOOGLE_CHAT_URL}

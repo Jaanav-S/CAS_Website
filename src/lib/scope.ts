@@ -18,13 +18,19 @@ export async function teacherSectionIds(
  * teacher only for their own sections.
  */
 export async function canModerate(
-  user: { id: string; role: string },
+  user: { id: string; role: string; developer?: boolean },
   experienceSectionId: string | null | undefined,
   /** The student's section right now, which may have moved on since. */
   studentSectionId?: string | null,
 ): Promise<boolean> {
-  // A CAS supervisor oversees the whole programme, so nothing is out of scope.
-  if (user.role === "admin" || user.role === "supervisor") return true;
+  // The coordinator, a supervisor and the maintainer oversee the whole
+  // programme, so nothing is out of scope for them.
+  if (
+    user.developer ||
+    ["admin", "coordinator", "supervisor"].includes(user.role)
+  ) {
+    return true;
+  }
   if (user.role !== "teacher") return false;
 
   const candidates = [experienceSectionId, studentSectionId]

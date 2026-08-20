@@ -28,11 +28,20 @@ export function UserRow({
   user,
   sections,
   isSelf,
+  viewerIsAdmin,
 }: {
   user: AdminUser;
   sections: SectionOption[];
   isSelf: boolean;
+  /** A coordinator (viewerIsAdmin=false) may not touch admin/coordinator accounts. */
+  viewerIsAdmin: boolean;
 }) {
+  const senior = user.role === "admin" || user.role === "coordinator";
+  // A coordinator can only manage students, teachers and supervisors.
+  const locked = !viewerIsAdmin && senior;
+  const assignableRoles = viewerIsAdmin
+    ? ROLES
+    : (["student", "teacher", "supervisor"] as const);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,14 +104,17 @@ export function UserRow({
         <select
           className="select"
           value={user.role}
-          disabled={busy || isSelf}
+          disabled={busy || isSelf || locked}
           onChange={(e) => patch({ role: e.target.value })}
         >
-          {ROLES.map((role) => (
+          {assignableRoles.map((role) => (
             <option key={role} value={role}>
               {ROLE_LABELS[role]}
             </option>
           ))}
+          {!assignableRoles.includes(user.role as never) && (
+            <option value={user.role}>{ROLE_LABELS[user.role]}</option>
+          )}
         </select>
       </td>
 
@@ -110,7 +122,7 @@ export function UserRow({
         <select
           className="select"
           value={user.section ?? ""}
-          disabled={busy || user.role === "admin" || user.role === "supervisor"}
+          disabled={busy || locked || user.role === "admin" || user.role === "supervisor" || user.role === "coordinator"}
           onChange={(e) => patch({ section: e.target.value })}
         >
           <option value="">No section</option>

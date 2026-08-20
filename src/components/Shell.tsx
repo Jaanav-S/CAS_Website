@@ -3,6 +3,15 @@ import type { SessionUser } from "@/lib/auth";
 import { ROLE_LABELS, SCHOOL_NAME } from "@/lib/constants";
 import { LogoutButton, NavLinks, type NavItem } from "@/components/Nav";
 
+const ADMIN_NAV: NavItem[] = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/projects", label: "CAS projects" },
+  { href: "/admin/users", label: "Users" },
+  { href: "/admin/sections", label: "Sections" },
+  { href: "/admin/invites", label: "Sign-up links" },
+  { href: "/discovery", label: "Discovery" },
+];
+
 const NAV: Record<SessionUser["role"], NavItem[]> = {
   student: [
     { href: "/dashboard", label: "Home" },
@@ -22,14 +31,8 @@ const NAV: Record<SessionUser["role"], NavItem[]> = {
     { href: "/supervisor/projects", label: "CAS projects" },
     { href: "/discovery", label: "Discovery" },
   ],
-  admin: [
-    { href: "/admin", label: "Overview" },
-    { href: "/admin/projects", label: "CAS projects" },
-    { href: "/admin/users", label: "Users" },
-    { href: "/admin/sections", label: "Sections" },
-    { href: "/admin/invites", label: "Sign-up links" },
-    { href: "/discovery", label: "Discovery" },
-  ],
+  coordinator: ADMIN_NAV,
+  admin: ADMIN_NAV,
 };
 
 export function Shell({

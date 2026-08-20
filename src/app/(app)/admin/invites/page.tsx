@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { requireRole } from "@/lib/auth";
+import { requireRole, isAdmin } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { Section } from "@/models/Section";
 import { allInvites } from "@/lib/invites";
@@ -17,7 +17,7 @@ async function origin(): Promise<string> {
 }
 
 export default async function AdminInvitesPage() {
-  await requireRole("admin");
+  const user = await requireRole("admin");
   await dbConnect();
 
   const base = await origin();
@@ -44,7 +44,7 @@ export default async function AdminInvitesPage() {
         </p>
       </div>
 
-      <CreateInvite sections={sections} />
+      <CreateInvite sections={sections} canInviteCoordinator={isAdmin(user)} />
 
       <InviteList invites={invites} canManage />
     </div>

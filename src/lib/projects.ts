@@ -119,7 +119,8 @@ export async function canViewProject(
 ): Promise<boolean> {
   // Published projects are on Discovery, so anybody signed in may read them.
   if (isPublished(project)) return true;
-  if (user.role === "admin" || user.role === "supervisor") return true;
+  if (["admin", "coordinator", "supervisor"].includes(user.role) || user.developer)
+    return true;
   if (isProjectMember(project, user.id)) return true;
   if (user.role === "teacher" && project.section) {
     const sections = (await teacherSectionIds(user.id)).map(String);
@@ -130,14 +131,22 @@ export async function canViewProject(
 
 /**
  * Which of the two approvals this person is responsible for, if any.
- * A supervisor signs off any project; a teacher only their own section's.
+ *
+ * The second sign-off is the CAS coordinator's job now, though a CAS supervisor
+ * still has the right to give it. Both fill the same internal slot (kept named
+ * "supervisor" to avoid a data migration) which the UI labels "CAS coordinator".
+ * A teacher signs off only their own section.
  */
 export async function approverRole(
   project: Pick<CasProjectDoc, "section">,
   user: SessionUser,
 ): Promise<"teacher" | "supervisor" | null> {
-  if (user.role === "supervisor") return "supervisor";
-  if (user.role === "admin") return "supervisor";
+  if (
+    user.developer ||
+    ["coordinator", "supervisor", "admin"].includes(user.role)
+  ) {
+    return "supervisor";
+  }
   if (user.role === "teacher") {
     if (!project.section) return null;
     const sections = (await teacherSectionIds(user.id)).map(String);

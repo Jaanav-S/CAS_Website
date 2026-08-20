@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { dbConnect } from "@/lib/db";
 import { User, type UserDoc } from "@/models/User";
 import { Section } from "@/models/Section";
-import { createSession } from "@/lib/auth";
+import { createSession, isMaintainer } from "@/lib/auth";
 import { isBootstrapAdmin } from "@/lib/bootstrap";
 import { GOOGLE_STATE_COOKIE, exchangeCode } from "@/lib/google";
 import { INVITE_COOKIE, claimSeat, findClaimable } from "@/lib/invites";
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         { $addToSet: { teachers: user._id } },
       );
     }
-  } else if (await isBootstrapAdmin(profile.email)) {
+  } else if (isMaintainer(profile.email) || (await isBootstrapAdmin(profile.email))) {
     user = await User.create({
       name: profile.name,
       email: profile.email,

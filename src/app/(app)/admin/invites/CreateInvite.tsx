@@ -6,13 +6,23 @@ import { ROLE_LABELS } from "@/lib/constants";
 
 export type SectionOption = { id: string; label: string };
 
-const ROLES = ["student", "teacher", "supervisor"] as const;
+
 
 /**
  * Makes a sign-up link. The capacity is the whole point: the link stops
  * working the moment that many people have joined.
  */
-export function CreateInvite({ sections }: { sections: SectionOption[] }) {
+export function CreateInvite({
+  sections,
+  canInviteCoordinator,
+}: {
+  sections: SectionOption[];
+  /** Only a full admin may create a link that makes another CAS coordinator. */
+  canInviteCoordinator: boolean;
+}) {
+  const roles = canInviteCoordinator
+    ? (["student", "teacher", "supervisor", "coordinator"] as const)
+    : (["student", "teacher", "supervisor"] as const);
   const router = useRouter();
   const [role, setRole] = useState<string>("student");
   const [section, setSection] = useState("");
@@ -74,7 +84,7 @@ export function CreateInvite({ sections }: { sections: SectionOption[] }) {
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
-            {ROLES.map((r) => (
+            {roles.map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABELS[r]}
               </option>

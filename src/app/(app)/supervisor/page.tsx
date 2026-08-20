@@ -9,6 +9,7 @@ import { statusCounts } from "@/lib/queries";
 import { plain } from "@/lib/serialize";
 import { formatDateTime } from "@/lib/format";
 import { StatCard } from "@/components/StatCard";
+import { SearchBox } from "@/components/SearchBox";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { ReviewStatus } from "@/lib/constants";
 
@@ -71,6 +72,8 @@ export default async function SupervisorPage() {
           on your sign-off.
         </p>
       </div>
+
+      <SearchBox />
 
       {awaitingMe > 0 && (
         <Link
