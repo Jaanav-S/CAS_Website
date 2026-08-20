@@ -2,7 +2,6 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
-import bcrypt from "bcryptjs";
 import { dbConnect } from "@/lib/db";
 import { User, type UserDoc } from "@/models/User";
 import type { Role } from "@/lib/constants";
@@ -18,17 +17,6 @@ function secret(): Uint8Array {
     );
   }
   return new TextEncoder().encode(value);
-}
-
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
-}
-
-export async function verifyPassword(
-  password: string,
-  hash: string,
-): Promise<boolean> {
-  return bcrypt.compare(password, hash);
 }
 
 export async function createSession(userId: string): Promise<void> {

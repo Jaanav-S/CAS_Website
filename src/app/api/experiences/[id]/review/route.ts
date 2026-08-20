@@ -12,7 +12,7 @@ export async function POST(
   request: NextRequest,
   ctx: RouteContext<"/api/experiences/[id]/review">,
 ) {
-  const user = await apiUser("teacher", "admin");
+  const user = await apiUser("teacher", "supervisor", "admin");
   if (!user) return NextResponse.json({ error: "Not allowed." }, { status: 403 });
 
   const parsed = reviewSchema.safeParse(await request.json());

@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { Section } from "@/models/Section";
+import { Invite } from "@/models/Invite";
 import { Experience } from "@/models/Experience";
 import { statusCounts } from "@/lib/queries";
 import { plain } from "@/lib/serialize";
@@ -27,7 +28,7 @@ export default async function AdminPage() {
   await requireRole("admin");
   await dbConnect();
 
-  const [counts, pendingUsers, totals, sections, recentDocs] = await Promise.all([
+  const [counts, pendingUsers, totals, sections, recentDocs, openInvites] = await Promise.all([
     statusCounts(),
     User.countDocuments({ status: "pending" }),
     User.aggregate<{ _id: string; count: number }>([
@@ -42,7 +43,16 @@ export default async function AdminPage() {
       .sort({ reviewedAt: -1 })
       .limit(12)
       .lean(),
+    Invite.find({ revoked: false })
+      .select("capacity usedBy")
+      .lean<{ capacity: number; usedBy: unknown[] }[]>(),
   ]);
+
+  // How many invited people have still not signed up.
+  const seatsLeft = openInvites.reduce(
+    (n, i) => n + Math.max(0, i.capacity - i.usedBy.length),
+    0,
+  );
 
   const byRole = Object.fromEntries(totals.map((r) => [r._id, r.count]));
   const recent = plain(recentDocs as unknown as Decision[]);
@@ -104,6 +114,13 @@ export default async function AdminPage() {
           <StatCard label="Teachers" value={byRole.teacher ?? 0} href="/admin/users?role=teacher" />
           <StatCard label="Admins" value={byRole.admin ?? 0} href="/admin/users?role=admin" />
           <StatCard label="Sections" value={sections} href="/admin/sections" />
+          <StatCard
+            label="Still to sign up"
+            value={seatsLeft}
+            tone={seatsLeft > 0 ? "info" : "neutral"}
+            hint="Places left on active links"
+            href="/admin/invites"
+          />
         </div>
       </section>
 

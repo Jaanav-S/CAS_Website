@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import mongoose from "mongoose";
 import { requireRole } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
@@ -8,15 +9,17 @@ import { roster } from "@/lib/roster";
 import { statusCounts } from "@/lib/queries";
 import { REQUIREMENTS } from "@/lib/constants";
 import { StatCard } from "@/components/StatCard";
+import { InviteList } from "@/components/InviteList";
+import { invitesForSections } from "@/lib/invites";
 
 export const metadata = { title: "Class overview" };
 
 export default async function TeacherPage(props: PageProps<"/teacher">) {
-  const user = await requireRole("teacher", "admin");
+  const user = await requireRole("teacher", "supervisor", "admin");
 
   await dbConnect();
   const sectionIds =
-    user.role === "admin"
+    user.role !== "teacher"
       ? (
           await Section.find().select("_id").lean<{ _id: mongoose.Types.ObjectId }[]>()
         ).map((s) => s._id)
@@ -35,10 +38,18 @@ export default async function TeacherPage(props: PageProps<"/teacher">) {
       : null;
 
   const scope = selected ? [selected] : sectionIds;
-  const [rows, counts] = await Promise.all([
+
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host") ?? "localhost:3000";
+  const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
+
+  const [rows, counts, invites] = await Promise.all([
     roster(scope),
     statusCounts({ section: { $in: scope.map((id) => new mongoose.Types.ObjectId(String(id))) } }),
+    invitesForSections(scope, origin),
   ]);
+
+  const stillToJoin = invites.reduce((n, i) => n + (i.state === "active" ? i.left : 0), 0);
 
   const onTrack = rows.filter((r) => r.progress.complete).length;
   const behind = rows.filter((r) => r.progress.percent < 40).length;
@@ -76,7 +87,7 @@ export default async function TeacherPage(props: PageProps<"/teacher">) {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Students" value={rows.length} />
         <StatCard
           label="Awaiting your review"
@@ -85,6 +96,12 @@ export default async function TeacherPage(props: PageProps<"/teacher">) {
           href="/teacher/review"
         />
         <StatCard label="Requirements met" value={onTrack} tone="brand" />
+        <StatCard
+          label="Still to sign up"
+          value={stillToJoin}
+          tone={stillToJoin > 0 ? "info" : "neutral"}
+          hint={stillToJoin > 0 ? "Invited but not joined yet" : undefined}
+        />
         <StatCard
           label="Under 40% complete"
           value={behind}
@@ -175,6 +192,15 @@ export default async function TeacherPage(props: PageProps<"/teacher">) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {invites.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
+            Sign-up links for these sections
+          </h2>
+          <InviteList invites={invites} canManage={false} />
+        </section>
       )}
     </div>
   );

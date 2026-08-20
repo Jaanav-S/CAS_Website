@@ -23,7 +23,8 @@ export async function canModerate(
   /** The student's section right now, which may have moved on since. */
   studentSectionId?: string | null,
 ): Promise<boolean> {
-  if (user.role === "admin") return true;
+  // A CAS supervisor oversees the whole programme, so nothing is out of scope.
+  if (user.role === "admin" || user.role === "supervisor") return true;
   if (user.role !== "teacher") return false;
 
   const candidates = [experienceSectionId, studentSectionId]

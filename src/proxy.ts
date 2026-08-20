@@ -6,7 +6,7 @@ import { SESSION_COOKIE } from "@/lib/auth";
  * visitors are bounced to /login. Role and approval checks happen in the
  * page/route handlers, which can read the database.
  */
-const PUBLIC_PATHS = ["/login", "/signup", "/api/auth"];
+const PUBLIC_PATHS = ["/login", "/join", "/api/auth"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

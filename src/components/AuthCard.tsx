@@ -29,9 +29,20 @@ export function AuthCard({
   );
 }
 
-export function GoogleButton({ label }: { label: string }) {
+export function GoogleButton({
+  label,
+  invite,
+}: {
+  label: string;
+  /** Passed on so the callback knows which link they arrived through. */
+  invite?: string;
+}) {
+  const href = invite
+    ? `/api/auth/google?invite=${encodeURIComponent(invite)}`
+    : "/api/auth/google";
+
   return (
-    <a href="/api/auth/google" className="btn btn-ghost w-full">
+    <a href={href} className="btn btn-ghost w-full">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
         <path
           fill="#4285F4"

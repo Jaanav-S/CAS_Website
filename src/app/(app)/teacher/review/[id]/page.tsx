@@ -16,7 +16,7 @@ export const metadata = { title: "Review submission" };
 export default async function ReviewPage(
   props: PageProps<"/teacher/review/[id]">,
 ) {
-  const user = await requireRole("teacher", "admin");
+  const user = await requireRole("teacher", "supervisor", "admin");
   const { id } = await props.params;
   const experience = await experienceDetail(id);
 

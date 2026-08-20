@@ -36,9 +36,9 @@ cp .env.example .env.local
 | ----------------------- | -------- | ------------------------------------------------------------ |
 | `MONGODB_URI`           | yes      | Your Atlas connection string                                  |
 | `AUTH_SECRET`           | yes      | Random 32+ character string used to sign session cookies      |
-| `BOOTSTRAP_ADMIN_EMAIL` | yes      | The one account that is auto-approved as an admin on signup   |
-| `GOOGLE_CLIENT_ID`      | optional | Enables the "Continue with Google" button                     |
-| `GOOGLE_CLIENT_SECRET`  | optional | Same                                                          |
+| `GOOGLE_CLIENT_ID`      | yes      | Sign-in is Google-only, so this is required                   |
+| `GOOGLE_CLIENT_SECRET`  | yes      | Same                                                          |
+| `BOOTSTRAP_ADMIN_EMAIL` | yes      | The one Google address that may sign in without an invite     |
 | `GOOGLE_REDIRECT_URI`   | rarely   | Only if your deployed callback URL is not `<origin>/api/auth/google/callback` |
 
 Generate a secret with:
@@ -47,29 +47,7 @@ Generate a secret with:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### 4. Run it
-
-```bash
-npm run dev
-```
-
-Open <http://localhost:3000>, sign up with the email you put in
-`BOOTSTRAP_ADMIN_EMAIL`, and you land as an approved admin. (If you leave that
-variable blank, the very first account created becomes the admin instead.)
-
-### 5. Set the school up
-
-As the admin:
-
-1. **Sections** → create a section, e.g. `DP1-A` / `2026-27`.
-2. **Users** → as teachers and students sign up, approve them, set their role,
-   and put them in a section.
-3. **Sections** → assign the teachers who review each section.
-
-Students can only be reviewed by a teacher assigned to their section, so this
-step matters.
-
-### Google sign-in (optional)
+### 4. Set up Google sign-in
 
 1. Go to <https://console.cloud.google.com/apis/credentials> → **Create
    credentials** → **OAuth client ID** → **Web application**.
@@ -77,9 +55,24 @@ step matters.
    redirect URI (plus your production URL when you deploy).
 3. Put the client ID and secret in `.env.local`.
 
-Google accounts go through the same admin approval as email signups. If someone
-signed up with a password and later uses Google with the same email, the two are
-linked to one account.
+### 5. Run it, and let yourself in
+
+```bash
+npm run dev
+```
+
+Open <http://localhost:3000> and sign in with the Google account you named in
+`BOOTSTRAP_ADMIN_EMAIL`. That is the only account that can get in without an
+invitation — everybody else joins through a link you create.
+
+### 6. Set the school up
+
+As the admin:
+
+1. **Sections** → create a section, e.g. `DP1-A` / `2026-27`.
+2. **Sign-up links** → create a link per group and send it out (see below).
+3. **Sections** → assign the teachers who review each section, if the teacher
+   link did not already do it.
 
 ---
 
@@ -90,15 +83,34 @@ linked to one account.
 | Role                | Can                                                                        |
 | ------------------- | -------------------------------------------------------------------------- |
 | **Student**         | Propose experiences, write reflections, run CAS projects, track their own progress, read Discovery |
-| **Teacher**         | See their section's progress, approve or send back submissions and their section's CAS projects |
-| **CAS supervisor**  | A school-wide overview, and the second sign-off every CAS project needs      |
-| **Admin**           | Approve accounts, set roles, manage sections, see programme-wide stats       |
+| **Teacher**         | See their section's progress and sign-up links, approve or send back their section's reflections and projects |
+| **CAS supervisor**  | A school-wide overview: every student's progress, every reflection, and the second sign-off on every CAS project |
+| **Admin**           | Everything above, plus creating sign-up links, sections and roles           |
 
-Create a CAS supervisor from **Users** → set someone's role to *CAS supervisor*.
-Without one, projects can be submitted but never fully approved.
+### Signing up
 
-Everyone signs up as a pending student. Nothing is visible until an admin
-approves the account.
+There is no self-signup and no passwords. Sign-in is Google-only, and an
+account is created **only** by opening a sign-up link.
+
+**Admin → Sign-up links** creates one. You choose:
+
+- **who is joining** — student, teacher or CAS supervisor,
+- **the section** — required for students, optional for teachers, not used for
+  supervisors,
+- **how many people** will use it.
+
+Send the link to the group. Each person opens it, signs in with Google, and is
+created straight away with that role and section, already approved — the link
+*is* the approval. **The link stops working the moment that many people have
+joined**, and can be turned off early.
+
+Both the admin and the section's teacher can see how many places are left and
+exactly who has joined; the admin's overview and the class overview each carry a
+"still to sign up" figure.
+
+Signing in with a Google account that has no account and no invite is refused
+with an explanation. Someone who already has an account just signs in — an
+invite is never spent on them.
 
 ### Adding a CAS experience — two steps
 

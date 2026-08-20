@@ -17,6 +17,8 @@ const NAV: Record<SessionUser["role"], NavItem[]> = {
   ],
   supervisor: [
     { href: "/supervisor", label: "Overview" },
+    { href: "/teacher", label: "Students" },
+    { href: "/teacher/review", label: "Reflections" },
     { href: "/supervisor/projects", label: "CAS projects" },
     { href: "/discovery", label: "Discovery" },
   ],
@@ -25,6 +27,7 @@ const NAV: Record<SessionUser["role"], NavItem[]> = {
     { href: "/admin/projects", label: "CAS projects" },
     { href: "/admin/users", label: "Users" },
     { href: "/admin/sections", label: "Sections" },
+    { href: "/admin/invites", label: "Sign-up links" },
     { href: "/discovery", label: "Discovery" },
   ],
 };

@@ -1,21 +1,13 @@
 import { User } from "@/models/User";
 
 /**
- * Decides the role/status a brand-new account starts with.
- * Everyone lands in "pending" until an admin approves them, except the
- * bootstrap admin — otherwise there would be nobody able to approve anyone.
+ * The one account that may sign in without an invite link: the bootstrap
+ * admin, named in BOOTSTRAP_ADMIN_EMAIL. Without it there would be nobody able
+ * to create the first invite.
  */
-export async function initialAccess(email: string): Promise<{
-  role: "admin" | "student";
-  status: "approved" | "pending";
-}> {
-  const bootstrap = process.env.BOOTSTRAP_ADMIN_EMAIL?.toLowerCase().trim();
-  if (bootstrap && bootstrap === email.toLowerCase()) {
-    return { role: "admin", status: "approved" };
-  }
-  // First account ever created also bootstraps the system.
-  if ((await User.estimatedDocumentCount()) === 0) {
-    return { role: "admin", status: "approved" };
-  }
-  return { role: "student", status: "pending" };
+export async function isBootstrapAdmin(email: string): Promise<boolean> {
+  const configured = process.env.BOOTSTRAP_ADMIN_EMAIL?.toLowerCase().trim();
+  if (configured && configured === email.toLowerCase()) return true;
+  // An empty database also lets the very first person in, as the admin.
+  return (await User.estimatedDocumentCount()) === 0;
 }

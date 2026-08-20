@@ -34,11 +34,11 @@ const TABS: { key: string; label: string }[] = [
 export default async function ReviewQueuePage(
   props: PageProps<"/teacher/review">,
 ) {
-  const user = await requireRole("teacher", "admin");
+  const user = await requireRole("teacher", "supervisor", "admin");
 
   await dbConnect();
   const sectionIds =
-    user.role === "admin"
+    user.role !== "teacher"
       ? (
           await Section.find().select("_id").lean<{ _id: mongoose.Types.ObjectId }[]>()
         ).map((s) => s._id)

@@ -13,7 +13,7 @@ export const metadata = { title: "Student record" };
 export default async function StudentRecordPage(
   props: PageProps<"/teacher/students/[id]">,
 ) {
-  const user = await requireRole("teacher", "admin");
+  const user = await requireRole("teacher", "supervisor", "admin");
   const { id } = await props.params;
 
   await dbConnect();

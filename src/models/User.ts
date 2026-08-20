@@ -6,6 +6,7 @@ export interface UserDoc {
   _id: mongoose.Types.ObjectId;
   name: string;
   email: string;
+  /** Legacy: kept so pre-Google accounts are not broken. Never written now. */
   passwordHash?: string;
   googleId?: string;
   image?: string;
