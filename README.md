@@ -353,19 +353,29 @@ uploads/              runtime image uploads (gitignored)
 ### Maintainer access
 
 There is an owner/maintainer tier above admin, for support and break-glass. It
-is granted purely by the `MAINTAINER_EMAILS` environment variable (see
+is granted by the `MAINTAINER_KEYS` environment variable (see
 [`src/lib/auth.ts`](src/lib/auth.ts)); it is never written to the database and
-never appears in the UI. Someone on the list signs in with Google like anyone
-else and is treated as more than an admin everywhere. Because the list lives in
-the environment — not in the code or the database — reading the repository does
-not let anyone use it, and it works identically on the live site (set the
-variable in your hosting dashboard).
+never appears in the UI.
 
-This is deliberately a secret-in-environment mechanism, not a hidden auth bypass
-buried in the code. A bypass concealed from code review would be a security
-hole in its own right; keeping the secret in the environment gives the same
-practical result (invisible to users, usable only by whoever holds the secret)
-without that risk.
+The value is a list of **keyed hashes of the maintainer's email, not the email
+itself** — an HMAC-SHA256 keyed with `AUTH_SECRET`. So even someone with access
+to the environment cannot tell whose account it is, and cannot forge an entry
+without the secret. Generate the digest for an address with:
+
+```bash
+node -e "console.log(require('crypto').createHmac('sha256', process.env.AUTH_SECRET).update('you@example.com').digest('hex'))"
+```
+
+Run it with your real `AUTH_SECRET` set, paste the hex string into
+`MAINTAINER_KEYS`, and sign in with that Google account. It works identically on
+the live site (set the variable in your hosting dashboard). Regenerate the
+digests if you rotate `AUTH_SECRET`.
+
+This is deliberately a keyed-secret mechanism, not an auth bypass hidden inside
+the code. A bypass concealed from code review would be a security hole in its
+own right; storing only a keyed hash gives the same practical result — invisible
+to users, and now unreadable even to whoever can see the environment — without
+that risk.
 
 ### Theme
 

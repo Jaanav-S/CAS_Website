@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -56,20 +57,35 @@ export type SessionUser = {
 };
 
 /**
- * The maintainer allow-list. Held in an environment variable (set in the
- * hosting dashboard on the live site, in .env.local for development) and never
- * committed, so the capability cannot be exercised by anyone who only has the
- * source. Comma-separated, case-insensitive.
+ * The maintainer allow-list is stored as keyed hashes, never as addresses, so
+ * the environment reveals nothing about whose account it is. Each entry in
+ * MAINTAINER_KEYS is an HMAC-SHA256 of the lowercased email, keyed with
+ * AUTH_SECRET — not reversible to an email, and not forgeable without the
+ * secret. Comma-separated hex digests.
+ *
+ * Generate the digest for an address with:
+ *   node -e "console.log(require('crypto').createHmac('sha256', process.env.AUTH_SECRET).update('you@example.com').digest('hex'))"
  */
-function maintainerEmails(): string[] {
-  return (process.env.MAINTAINER_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
+function maintainerDigest(email: string): string {
+  return createHmac("sha256", process.env.AUTH_SECRET ?? "")
+    .update(email.trim().toLowerCase())
+    .digest("hex");
 }
 
 export function isMaintainer(email: string): boolean {
-  return maintainerEmails().includes(email.toLowerCase());
+  if (!email) return false;
+  const digest = maintainerDigest(email);
+  const allowed = (process.env.MAINTAINER_KEYS ?? "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+
+  // Constant-time comparison, guarding length since timingSafeEqual demands it.
+  return allowed.some(
+    (h) =>
+      h.length === digest.length &&
+      timingSafeEqual(Buffer.from(h), Buffer.from(digest)),
+  );
 }
 
 function toSessionUser(user: UserDoc): SessionUser {
