@@ -9,6 +9,12 @@ Built with Next.js 16 (App Router), MongoDB via Mongoose, and Tailwind CSS.
 
 ---
 
+## Deploying
+
+Production runs as Docker containers (app + MongoDB + Caddy for HTTPS), and
+every push to `main` auto-deploys via GitHub Actions. Full step-by-step in
+[DEPLOY.md](DEPLOY.md).
+
 ## Getting started
 
 ### 1. Install

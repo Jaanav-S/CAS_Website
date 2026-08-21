@@ -1,0 +1,12 @@
+# Caddy fetches and renews a free Let's Encrypt certificate for this domain
+# automatically. Change the domain by editing APP_DOMAIN in .env — not here.
+#
+# Note for the future school server: automatic public certificates need ports
+# 80/443 reachable from the internet. On an internal-only network, either use a
+# DNS-challenge (e.g. Cloudflare) or replace the domain line with `:443` plus
+# `tls internal` for Caddy's own self-signed CA.
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}

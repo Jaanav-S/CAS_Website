@@ -1,0 +1,22 @@
+# Build output and deps — rebuilt inside the image
+node_modules
+.next
+uploads
+
+# Local-only
+.env*
+!.env.example
+.git
+.github
+*.log
+devtest.log
+npm-debug.log*
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Docs and scratch that don't belong in the image
+README.md
