@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import mongoose from "mongoose";
 import { requireRole } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
@@ -11,6 +10,7 @@ import { REQUIREMENTS } from "@/lib/constants";
 import { StatCard } from "@/components/StatCard";
 import { InviteList } from "@/components/InviteList";
 import { invitesForSections } from "@/lib/invites";
+import { appOrigin } from "@/lib/appUrl";
 
 export const metadata = { title: "Class overview" };
 
@@ -39,9 +39,7 @@ export default async function TeacherPage(props: PageProps<"/teacher">) {
 
   const scope = selected ? [selected] : sectionIds;
 
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("host") ?? "localhost:3000";
-  const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
+  const origin = await appOrigin();
 
   const [rows, counts, invites] = await Promise.all([
     roster(scope),

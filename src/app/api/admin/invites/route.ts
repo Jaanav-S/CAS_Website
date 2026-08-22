@@ -5,6 +5,7 @@ import { dbConnect } from "@/lib/db";
 import { Invite } from "@/models/Invite";
 import { Section } from "@/models/Section";
 import { inviteUrl, newToken } from "@/lib/invites";
+import { appOriginFrom } from "@/lib/appUrl";
 import { firstIssue } from "@/lib/validation";
 
 const schema = z
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json(
-    { token, url: inviteUrl(request.nextUrl.origin, token) },
+    { token, url: inviteUrl(appOriginFrom(request), token) },
     { status: 201 },
   );
 }

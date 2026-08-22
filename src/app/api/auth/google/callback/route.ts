@@ -6,11 +6,12 @@ import { createSession, isMaintainer } from "@/lib/auth";
 import { isBootstrapAdmin } from "@/lib/bootstrap";
 import { GOOGLE_STATE_COOKIE, exchangeCode } from "@/lib/google";
 import { INVITE_COOKIE, claimSeat, findClaimable } from "@/lib/invites";
+import { appOriginFrom } from "@/lib/appUrl";
 
 function fail(request: NextRequest, code: string, token?: string) {
   // Send invite problems back to the invite page, where they make sense.
-  const base = token ? `/join/${token}` : "/login";
-  return NextResponse.redirect(new URL(`${base}?error=${code}`, request.url));
+  const path = token ? `/join/${token}` : "/login";
+  return NextResponse.redirect(`${appOriginFrom(request)}${path}?error=${code}`);
 }
 
 export async function GET(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   let profile;
   try {
-    profile = await exchangeCode(code, request.nextUrl.origin);
+    profile = await exchangeCode(code, appOriginFrom(request));
   } catch {
     return fail(request, "google-failed", token);
   }
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
 
   await createSession(String((user as UserDoc)._id));
 
-  const response = NextResponse.redirect(new URL("/", request.url));
+  const response = NextResponse.redirect(`${appOriginFrom(request)}/`);
   response.cookies.delete(GOOGLE_STATE_COOKIE);
   response.cookies.delete(INVITE_COOKIE);
   return response;

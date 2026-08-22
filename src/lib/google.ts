@@ -21,6 +21,7 @@ function requiredEnv(name: string): string {
 }
 
 export function redirectUri(origin: string): string {
+  // The origin passed in is already the public one (from appOriginFrom).
   return process.env.GOOGLE_REDIRECT_URI || `${origin}/api/auth/google/callback`;
 }
 

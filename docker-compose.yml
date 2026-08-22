@@ -14,6 +14,7 @@ services:
         condition: service_healthy
     environment:
       MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/cas?authSource=admin
+      APP_URL: https://${APP_DOMAIN}
       AUTH_SECRET: ${AUTH_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}

@@ -6,6 +6,7 @@ import {
   googleConfigured,
 } from "@/lib/google";
 import { INVITE_COOKIE } from "@/lib/invites";
+import { appOriginFrom } from "@/lib/appUrl";
 
 export async function GET(request: NextRequest) {
   if (!googleConfigured()) {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   const state = randomUUID();
   const response = NextResponse.redirect(
-    authorizationUrl(request.nextUrl.origin, state),
+    authorizationUrl(appOriginFrom(request), state),
   );
   // The invite token has to survive the trip to Google and back, so it rides
   // in a short-lived cookie rather than in the redirect URL.
