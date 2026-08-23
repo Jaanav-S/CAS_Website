@@ -14,6 +14,7 @@ export type AdminUser = {
   status: AccountStatus;
   section?: string | null;
   graduated?: boolean;
+  graduationYear?: number | null;
   createdAt: string;
 };
 
@@ -119,19 +120,25 @@ export function UserRow({
       </td>
 
       <td className="px-5 py-3">
-        <select
-          className="select"
-          value={user.section ?? ""}
-          disabled={busy || locked || user.role === "admin" || user.role === "supervisor" || user.role === "coordinator"}
-          onChange={(e) => patch({ section: e.target.value })}
-        >
-          <option value="">No section</option>
-          {sections.map((section) => (
-            <option key={section._id} value={section._id}>
-              {section.name} · {section.year} ({section.dpYear})
-            </option>
-          ))}
-        </select>
+        {user.graduated ? (
+          <span className="badge badge-info">
+            Graduated{user.graduationYear ? ` ${user.graduationYear}` : ""}
+          </span>
+        ) : (
+          <select
+            className="select"
+            value={user.section ?? ""}
+            disabled={busy || locked || user.role === "admin" || user.role === "supervisor" || user.role === "coordinator"}
+            onChange={(e) => patch({ section: e.target.value })}
+          >
+            <option value="">No section</option>
+            {sections.map((section) => (
+              <option key={section._id} value={section._id}>
+                {section.name} · {section.year} ({section.dpYear})
+              </option>
+            ))}
+          </select>
+        )}
       </td>
 
       <td className="px-5 py-3">

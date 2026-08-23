@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { apiUser } from "@/lib/auth";
@@ -6,7 +7,7 @@ import { Section, type SectionDoc } from "@/models/Section";
 import { User, type UserDoc } from "@/models/User";
 import { moveStudentToSection } from "@/lib/promotion";
 import { firstIssue } from "@/lib/validation";
-import { nextAcademicYear } from "@/lib/constants";
+import { nextAcademicYear, academicYearEnd } from "@/lib/constants";
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/);
 
@@ -46,11 +47,40 @@ export async function POST(request: NextRequest) {
 
   if (parsed.data.action === "graduate") {
     // Restricted to students so a mis-sent id cannot graduate a teacher.
-    const result = await User.updateMany(
-      { _id: { $in: parsed.data.studentIds }, role: "student" },
-      { graduated: true },
-    );
-    return NextResponse.json({ graduated: result.modifiedCount });
+    const students = await User.find({
+      _id: { $in: parsed.data.studentIds },
+      role: "student",
+    })
+      .select("section")
+      .lean<{ _id: mongoose.Types.ObjectId; section?: mongoose.Types.ObjectId | null }[]>();
+
+    // Look up each student's current (DP2) section so we can stamp the year they
+    // graduate in before detaching them from it.
+    const sectionIds = students
+      .map((s) => s.section)
+      .filter((id): id is NonNullable<typeof id> => Boolean(id));
+    const sections = await Section.find({ _id: { $in: sectionIds } })
+      .select("year")
+      .lean<{ _id: mongoose.Types.ObjectId; year: string }[]>();
+    const yearById = new Map(sections.map((s) => [String(s._id), s.year]));
+
+    const ops = students.map((s) => {
+      const sectionYear = s.section ? yearById.get(String(s.section)) : undefined;
+      return {
+        updateOne: {
+          filter: { _id: s._id },
+          // On graduation: keep the account, drop the section, and record the
+          // year they finished so it can be shown in the section's place.
+          update: {
+            graduated: true,
+            section: null,
+            graduationYear: academicYearEnd(sectionYear ?? ""),
+          },
+        },
+      };
+    });
+    if (ops.length > 0) await User.bulkWrite(ops);
+    return NextResponse.json({ graduated: ops.length });
   }
 
   if (parsed.data.action === "advance-year") {

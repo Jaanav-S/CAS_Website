@@ -27,7 +27,7 @@ export default async function AdminUsersPage(props: PageProps<"/admin/users">) {
 
   const [userDocs, sectionDocs] = await Promise.all([
     User.find(query)
-      .select("name email image role status section graduated createdAt")
+      .select("name email image role status section graduated graduationYear createdAt")
       .sort({ status: 1, createdAt: -1 })
       .limit(500)
       .lean(),

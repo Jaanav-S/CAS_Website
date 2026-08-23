@@ -15,6 +15,12 @@ export interface UserDoc {
   section?: mongoose.Types.ObjectId | null;
   /** Finished the programme: may still sign in and read, but not submit. */
   graduated: boolean;
+  /**
+   * The calendar year the student graduated (e.g. 2028), captured at graduation
+   * from their DP2 section's academic year. Shown in place of a section, which
+   * is cleared when they graduate.
+   */
+  graduationYear?: number | null;
   /** Free-text reason shown to the user when an admin rejects the account. */
   rejectionReason?: string;
   createdAt: Date;
@@ -38,6 +44,7 @@ const UserSchema = new Schema<UserDoc>(
     status: { type: String, enum: ACCOUNT_STATUSES, default: "pending" },
     section: { type: Schema.Types.ObjectId, ref: "Section", default: null },
     graduated: { type: Boolean, default: false },
+    graduationYear: { type: Number, default: null },
     rejectionReason: { type: String },
   },
   { timestamps: true },

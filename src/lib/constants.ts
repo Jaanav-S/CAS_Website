@@ -161,3 +161,12 @@ export function nextAcademicYear(year: string): string {
   const start = Number.parseInt(year.slice(0, 4), 10);
   return Number.isNaN(start) ? year : academicYearLabel(start + 1);
 }
+
+/**
+ * The calendar year an academic year ends in — the year a DP2 cohort graduates.
+ * e.g. "2027-28" → 2028. Falls back to the current calendar year.
+ */
+export function academicYearEnd(year: string): number {
+  const start = Number.parseInt((year ?? "").slice(0, 4), 10);
+  return Number.isNaN(start) ? new Date().getFullYear() : start + 1;
+}

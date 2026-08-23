@@ -7,7 +7,7 @@ import { User } from "@/models/User";
 import { Experience } from "@/models/Experience";
 import { moveStudentToSection } from "@/lib/promotion";
 import { Section } from "@/models/Section";
-import { ACCOUNT_STATUSES, ROLES } from "@/lib/constants";
+import { ACCOUNT_STATUSES, ROLES, academicYearEnd } from "@/lib/constants";
 import { firstIssue } from "@/lib/validation";
 
 const schema = z.object({
@@ -66,7 +66,25 @@ export async function PATCH(
 
   if (parsed.data.status) user.status = parsed.data.status;
   if (parsed.data.role) user.role = parsed.data.role;
-  if (parsed.data.graduated !== undefined) user.graduated = parsed.data.graduated;
+  if (parsed.data.graduated !== undefined) {
+    user.graduated = parsed.data.graduated;
+    if (parsed.data.graduated) {
+      // Same as the batch tool: stamp the graduation year from the current
+      // section, then detach the student from any section.
+      let sectionYear = "";
+      if (user.section) {
+        const sec = await Section.findById(user.section)
+          .select("year")
+          .lean<{ year: string } | null>();
+        sectionYear = sec?.year ?? "";
+      }
+      user.graduationYear = academicYearEnd(sectionYear);
+      user.section = null;
+    } else {
+      // Un-graduated: drop the graduation year; the admin re-assigns a section.
+      user.graduationYear = null;
+    }
+  }
   if (parsed.data.rejectionReason !== undefined) {
     user.rejectionReason = parsed.data.rejectionReason;
   }
