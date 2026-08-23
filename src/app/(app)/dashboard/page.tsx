@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { studentExperiences, studentProgress } from "@/lib/queries";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { ExperienceCard } from "@/components/ExperienceCard";
+import { Avatar } from "@/components/Avatar";
 
 export const metadata = { title: "Home" };
 
@@ -23,13 +24,16 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">
-            Hello, {user.name.split(" ")[0]}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            Here is how your Creativity, Activity and Service programme is going.
-          </p>
+        <div className="flex items-center gap-4">
+          <Avatar name={user.name} image={user.image} size={52} />
+          <div>
+            <h1 className="text-2xl font-bold">
+              Hello, {user.name.split(" ")[0]}
+            </h1>
+            <p className="mt-1 text-sm text-muted">
+              Here is how your Creativity, Activity and Service programme is going.
+            </p>
+          </div>
         </div>
         {!user.graduated && (
           <Link href="/experiences/new" className="btn btn-primary">

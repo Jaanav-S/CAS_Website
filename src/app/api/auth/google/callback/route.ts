@@ -46,7 +46,9 @@ export async function GET(request: NextRequest) {
       user.googleId = profile.sub;
       touched = true;
     }
-    if (!user.image && profile.picture) {
+    // Refresh the photo on every sign-in, so it stays current and existing
+    // accounts that predate the avatar feature pick one up.
+    if (profile.picture && user.image !== profile.picture) {
       user.image = profile.picture;
       touched = true;
     }

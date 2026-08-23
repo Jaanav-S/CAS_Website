@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { SessionUser } from "@/lib/auth";
 import { ROLE_LABELS, SCHOOL_NAME } from "@/lib/constants";
 import { LogoutButton, NavLinks, type NavItem } from "@/components/Nav";
+import { Avatar } from "@/components/Avatar";
 
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Overview" },
@@ -47,12 +48,13 @@ export function Shell({
       <header className="sticky top-0 z-20 border-b bg-surface/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
           <Link href="/" className="flex items-center gap-2.5">
-            <span
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-icon.png"
+              alt=""
               aria-hidden
-              className="grid h-9 w-9 place-items-center rounded-lg bg-brand text-xs font-bold tracking-wide text-white"
-            >
-              FS
-            </span>
+              className="h-9 w-9 object-contain"
+            />
             <span className="hidden leading-tight sm:block">
               <span className="block font-serif text-base font-semibold">
                 {SCHOOL_NAME}
@@ -68,6 +70,7 @@ export function Shell({
               <p className="text-sm font-semibold leading-tight">{user.name}</p>
               <p className="text-xs text-muted">{ROLE_LABELS[user.role] ?? user.role}</p>
             </div>
+            <Avatar name={user.name} image={user.image} size={36} />
             <LogoutButton />
           </div>
         </div>

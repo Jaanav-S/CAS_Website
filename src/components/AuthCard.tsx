@@ -1,5 +1,7 @@
 import { SCHOOL_NAME } from "@/lib/constants";
 
+const CREDITS_URL = "https://in.linkedin.com/in/jaanav-salia-2a0007425";
+
 export function AuthCard({
   title,
   subtitle,
@@ -13,17 +15,28 @@ export function AuthCard({
     <div className="grid min-h-screen place-items-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <span
-            aria-hidden
-            className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-brand text-sm font-bold tracking-wide text-white"
-          >
-            FS
-          </span>
-          <p className="mb-1 text-sm font-semibold text-brand">{SCHOOL_NAME}</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-wordmark.png"
+            alt={SCHOOL_NAME}
+            className="mx-auto mb-4 h-12 w-auto"
+          />
           <h1 className="text-2xl font-bold">{title}</h1>
           <p className="mt-1 text-sm text-muted">{subtitle}</p>
         </div>
         <div className="card p-6">{children}</div>
+
+        <p className="mt-6 text-center text-xs text-muted">
+          © {new Date().getFullYear()} {SCHOOL_NAME} ·{" "}
+          <a
+            href={CREDITS_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="hover:text-brand hover:underline"
+          >
+            Credits
+          </a>
+        </p>
       </div>
     </div>
   );
