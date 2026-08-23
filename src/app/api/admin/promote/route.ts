@@ -27,6 +27,9 @@ const schema = z.discriminatedUnion("action", [
       )
       .min(1, "Nothing to assign."),
   }),
+  // Roll every section on to the next academic year (2026-27 → 2027-28). Run
+  // once at end of year, so the whole school moves up together.
+  z.object({ action: z.literal("advance-year") }),
 ]);
 
 /** End-of-year batch operations: graduate a cohort, move the next one up. */
@@ -48,6 +51,21 @@ export async function POST(request: NextRequest) {
       { graduated: true },
     );
     return NextResponse.json({ graduated: result.modifiedCount });
+  }
+
+  if (parsed.data.action === "advance-year") {
+    // Every section moves on one academic year at once, so DP1 sections are
+    // ready for the new intake and DP2 sections show the year the promoted
+    // cohort is actually in.
+    const sections = await Section.find().select("year").lean<SectionDoc[]>();
+    const ops = sections
+      .map((s) => ({ id: s._id, year: nextAcademicYear(s.year) }))
+      .filter((o) => o.year !== undefined)
+      .map((o) => ({
+        updateOne: { filter: { _id: o.id }, update: { year: o.year } },
+      }));
+    if (ops.length > 0) await Section.bulkWrite(ops);
+    return NextResponse.json({ advanced: ops.length });
   }
 
   const { assignments } = parsed.data;
@@ -83,24 +101,6 @@ export async function POST(request: NextRequest) {
       _id: { $in: group.studentIds },
       role: "student",
     }).lean<UserDoc[]>();
-    if (students.length === 0) continue;
-
-    // Moving up a year: the DP2 section takes on the academic year *after* the
-    // DP1 year its incoming students are leaving (2026-27 → 2027-28), so the
-    // promoted cohort is not stuck on last year's label.
-    const sourceIds = students
-      .map((s) => s.section)
-      .filter((id): id is NonNullable<typeof id> => Boolean(id));
-    const source = await Section.findOne({ _id: { $in: sourceIds } })
-      .select("year")
-      .lean<{ year: string } | null>();
-    if (source?.year) {
-      const rolled = nextAcademicYear(source.year);
-      if (rolled !== section.year) {
-        await Section.updateOne({ _id: section._id }, { year: rolled });
-        section.year = rolled;
-      }
-    }
 
     for (const student of students) {
       await moveStudentToSection(student, group.sectionId, section);

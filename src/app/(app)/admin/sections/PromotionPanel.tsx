@@ -16,6 +16,7 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [confirmingGraduate, setConfirmingGraduate] = useState(false);
+  const [confirmingAdvance, setConfirmingAdvance] = useState(false);
   /** Set once students have been promoted, because they then show up in the
    *  graduating list too and must not be swept up by a second click. */
   const [justPromoted, setJustPromoted] = useState(0);
@@ -71,6 +72,15 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
       setPicks({});
       setJustPromoted(assignments.reduce((n, a) => n + a.studentIds.length, 0));
     }
+  }
+
+  async function advanceYear() {
+    const ok = await post(
+      { action: "advance-year" },
+      (r) =>
+        `${r.advanced} section${r.advanced === 1 ? "" : "s"} moved to the next academic year.`,
+    );
+    if (ok) setConfirmingAdvance(false);
   }
 
   if (!open) {
@@ -292,13 +302,66 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
                 </button>
               )}
               <p className="hint">
-                The DP2 section they move into rolls forward a year (e.g.
-                2026-27 → 2027-28). Approved DP1 experiences stay with the DP1
-                class; unfinished work follows the student.
+                Approved DP1 experiences stay with the DP1 class; unfinished work
+                follows the student.
               </p>
             </div>
           </>
         )}
+      </section>
+
+      {/* ---------------- step 3 ---------------- */}
+      <section className="rounded-xl border p-5">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="badge badge-neutral">Step 3</span>
+          <h3 className="font-bold">Advance the school year</h3>
+        </div>
+
+        <p className="mt-3 text-sm">
+          Moves <strong>every</strong> section on to the next academic year (e.g.
+          2026-27 → 2027-28) in one go — so DP2 sections show the year the
+          promoted cohort is now in, and DP1 sections are ready for the new
+          intake. Run this once, after graduating and moving students up.
+        </p>
+
+        <div className="mt-4">
+          {confirmingAdvance ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-danger">
+                Add a year to every section?
+              </span>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={advanceYear}
+                disabled={busy}
+              >
+                {busy ? "Advancing…" : "Yes, advance all sections"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setConfirmingAdvance(false)}
+                disabled={busy}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setConfirmingAdvance(true)}
+              disabled={busy}
+            >
+              Advance all sections +1 year
+            </button>
+          )}
+          <p className="hint mt-2">
+            Only run this once per year — clicking it again would add another
+            year. You can still fix an individual section&apos;s year on its card.
+          </p>
+        </div>
       </section>
     </div>
   );
