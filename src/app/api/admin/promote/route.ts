@@ -2,22 +2,34 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { apiUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
-import { User } from "@/models/User";
+import { Section, type SectionDoc } from "@/models/Section";
+import { User, type UserDoc } from "@/models/User";
+import { moveStudentToSection } from "@/lib/promotion";
 import { firstIssue } from "@/lib/validation";
+import { nextAcademicYear } from "@/lib/constants";
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/);
 
-const schema = z.object({
-  action: z.literal("graduate"),
-  /** Explicit list, taken from what the admin was actually shown. */
-  studentIds: z.array(objectId).min(1, "Select at least one student."),
-});
+const schema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("graduate"),
+    /** Explicit list, taken from what the admin was actually shown. */
+    studentIds: z.array(objectId).min(1, "Select at least one student."),
+  }),
+  z.object({
+    action: z.literal("assign"),
+    assignments: z
+      .array(
+        z.object({
+          sectionId: objectId,
+          studentIds: z.array(objectId),
+        }),
+      )
+      .min(1, "Nothing to assign."),
+  }),
+]);
 
-/**
- * End-of-year graduation. DP1 → DP2 promotion is automatic now (a section
- * advances with the academic year), so the only deliberate act left is marking
- * the leaving cohort as graduated.
- */
+/** End-of-year batch operations: graduate a cohort, move the next one up. */
 export async function POST(request: NextRequest) {
   const admin = await apiUser("admin");
   if (!admin) return NextResponse.json({ error: "Not allowed." }, { status: 403 });
@@ -29,10 +41,72 @@ export async function POST(request: NextRequest) {
 
   await dbConnect();
 
-  // Restricted to students so a mis-sent id cannot graduate a teacher.
-  const result = await User.updateMany(
-    { _id: { $in: parsed.data.studentIds }, role: "student" },
-    { graduated: true },
-  );
-  return NextResponse.json({ graduated: result.modifiedCount });
+  if (parsed.data.action === "graduate") {
+    // Restricted to students so a mis-sent id cannot graduate a teacher.
+    const result = await User.updateMany(
+      { _id: { $in: parsed.data.studentIds }, role: "student" },
+      { graduated: true },
+    );
+    return NextResponse.json({ graduated: result.modifiedCount });
+  }
+
+  const { assignments } = parsed.data;
+
+  // A student appearing under two sections would be assigned twice, with the
+  // last write silently winning — better to refuse and let the admin fix it.
+  const seen = new Set<string>();
+  for (const group of assignments) {
+    for (const id of group.studentIds) {
+      if (seen.has(id)) {
+        return NextResponse.json(
+          { error: "A student is listed under more than one section." },
+          { status: 400 },
+        );
+      }
+      seen.add(id);
+    }
+  }
+
+  const sectionIds = assignments.map((a) => a.sectionId);
+  const sections = await Section.find({ _id: { $in: sectionIds } }).lean<SectionDoc[]>();
+  const byId = new Map(sections.map((s) => [String(s._id), s]));
+  if (sections.length !== new Set(sectionIds).size) {
+    return NextResponse.json({ error: "Unknown section." }, { status: 400 });
+  }
+
+  let moved = 0;
+  for (const group of assignments) {
+    if (group.studentIds.length === 0) continue;
+    const section = byId.get(group.sectionId)!;
+
+    const students = await User.find({
+      _id: { $in: group.studentIds },
+      role: "student",
+    }).lean<UserDoc[]>();
+    if (students.length === 0) continue;
+
+    // Moving up a year: the DP2 section takes on the academic year *after* the
+    // DP1 year its incoming students are leaving (2026-27 → 2027-28), so the
+    // promoted cohort is not stuck on last year's label.
+    const sourceIds = students
+      .map((s) => s.section)
+      .filter((id): id is NonNullable<typeof id> => Boolean(id));
+    const source = await Section.findOne({ _id: { $in: sourceIds } })
+      .select("year")
+      .lean<{ year: string } | null>();
+    if (source?.year) {
+      const rolled = nextAcademicYear(source.year);
+      if (rolled !== section.year) {
+        await Section.updateOne({ _id: section._id }, { year: rolled });
+        section.year = rolled;
+      }
+    }
+
+    for (const student of students) {
+      await moveStudentToSection(student, group.sectionId, section);
+      moved += 1;
+    }
+  }
+
+  return NextResponse.json({ moved });
 }

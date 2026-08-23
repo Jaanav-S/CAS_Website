@@ -3,7 +3,6 @@ import { dbConnect } from "@/lib/db";
 import { Section } from "@/models/Section";
 import { allInvites } from "@/lib/invites";
 import { appOrigin } from "@/lib/appUrl";
-import { sectionLabel, sectionGradYear } from "@/lib/cohort";
 import { CreateInvite, type SectionOption } from "./CreateInvite";
 import { InviteList } from "@/components/InviteList";
 
@@ -17,24 +16,15 @@ export default async function AdminInvitesPage() {
   const [invites, sectionDocs] = await Promise.all([
     allInvites(base),
     Section.find()
-      .select("name year dpYear gradYear")
-      .lean<
-        {
-          _id: unknown;
-          name: string;
-          year?: string;
-          dpYear?: string;
-          gradYear?: number;
-        }[]
-      >(),
+      .select("name year dpYear")
+      .sort({ dpYear: 1, year: -1, name: 1 })
+      .lean<{ _id: unknown; name: string; year: string; dpYear: string }[]>(),
   ]);
 
-  const sections: SectionOption[] = sectionDocs
-    .sort((a, b) => sectionGradYear(b) - sectionGradYear(a) || a.name.localeCompare(b.name))
-    .map((s) => ({
-      id: String(s._id),
-      label: sectionLabel(s),
-    }));
+  const sections: SectionOption[] = sectionDocs.map((s) => ({
+    id: String(s._id),
+    label: `${s.name} · ${s.year} (${s.dpYear})`,
+  }));
 
   return (
     <div className="space-y-6">

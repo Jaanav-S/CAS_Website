@@ -163,7 +163,7 @@ export async function projectsForStudent(userId: string) {
     .select("title status strands fromDate toDate submittedAt updatedAt teacherApproval supervisorApproval completion timeline owner members section")
     .populate("owner", "name email")
     .populate("members", "name email")
-    .populate("section", "name year dpYear gradYear")
+    .populate("section", "name year")
     .sort({ updatedAt: -1 })
     .lean();
 }
@@ -213,7 +213,7 @@ export async function projectDetail(id: string) {
     .populate("owner", "name email")
     .populate("members", "name email")
     .populate("casSupervisor", "name")
-    .populate("section", "name year dpYear gradYear")
+    .populate("section", "name year")
     .lean();
 }
 
@@ -226,7 +226,7 @@ export type ProjectListItem = {
   updatedAt: string;
   owner: { _id: string; name: string; email: string };
   members: { _id: string; name: string; email: string }[];
-  section?: { name: string; year?: string; dpYear?: string; gradYear?: number } | null;
+  section?: { name: string; year: string } | null;
   teacherApproval: { status: string; byName?: string };
   supervisorApproval: { status: string; byName?: string };
   completion?: {
@@ -273,7 +273,7 @@ export async function projectQueue(
     .select(LIST_FIELDS)
     .populate("owner", "name email")
     .populate("members", "name email")
-    .populate("section", "name year dpYear gradYear")
+    .populate("section", "name year")
     .sort({ submittedAt: 1, updatedAt: -1 })
     .limit(200)
     .lean();

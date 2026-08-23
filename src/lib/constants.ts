@@ -139,13 +139,25 @@ export const REQUIREMENTS = {
   perLearningOutcome: 2,
 };
 
-/** Academic years offered in the form dropdown, e.g. "2026-27". */
-export function academicYears(count = 5): string[] {
+/** Format a start year as an academic-year label, e.g. 2026 → "2026-27". */
+export function academicYearLabel(startYear: number): string {
+  return `${startYear}-${String((startYear + 1) % 100).padStart(2, "0")}`;
+}
+
+/**
+ * Academic years offered in the form dropdown, e.g. "2026-27". The window is
+ * anchored to today (so it rolls forward every year) and runs from last year to
+ * well into the future, so there is always plenty of headroom.
+ */
+export function academicYears(count = 12): string[] {
   const now = new Date();
   // An academic year starting in August rolls over to the next label.
   const startYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-  return Array.from({ length: count }, (_, i) => {
-    const y = startYear - 1 + i;
-    return `${y}-${String((y + 1) % 100).padStart(2, "0")}`;
-  });
+  return Array.from({ length: count }, (_, i) => academicYearLabel(startYear - 1 + i));
+}
+
+/** The academic year after the given one, e.g. "2026-27" → "2027-28". */
+export function nextAcademicYear(year: string): string {
+  const start = Number.parseInt(year.slice(0, 4), 10);
+  return Number.isNaN(start) ? year : academicYearLabel(start + 1);
 }

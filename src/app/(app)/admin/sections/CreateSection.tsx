@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DP_YEARS } from "@/lib/constants";
 
-export function CreateSection() {
+export function CreateSection({ years }: { years: string[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [year, setYear] = useState(years[1] ?? years[0] ?? "");
   const [dpYear, setDpYear] = useState<string>(DP_YEARS[0]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -19,7 +20,7 @@ export function CreateSection() {
     const res = await fetch("/api/admin/sections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, dpYear }),
+      body: JSON.stringify({ name, year, dpYear }),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
@@ -29,7 +30,6 @@ export function CreateSection() {
       return;
     }
     setName("");
-    setDpYear(DP_YEARS[0]);
     router.refresh();
   }
 
@@ -50,8 +50,24 @@ export function CreateSection() {
       </div>
 
       <div className="w-40">
+        <label className="label" htmlFor="section-year">
+          Year
+        </label>
+        <select
+          id="section-year"
+          className="select"
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+        >
+          {years.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="w-32">
         <label className="label" htmlFor="section-dp">
-          Starts as
+          DP year
         </label>
         <select
           id="section-dp"
@@ -68,11 +84,6 @@ export function CreateSection() {
       <button type="submit" className="btn btn-primary" disabled={busy}>
         {busy ? "Creating…" : "Create section"}
       </button>
-
-      <p className="hint w-full">
-        The academic year is set from today and rolls forward on its own — a DP1
-        section this year becomes DP2 next year automatically.
-      </p>
 
       {error && <p className="w-full text-sm text-danger">{error}</p>}
     </form>

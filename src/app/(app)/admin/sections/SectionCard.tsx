@@ -4,56 +4,57 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { DP_YEARS } from "@/lib/constants";
 
 export type TeacherOption = { _id: string; name: string; email: string };
 
 export type SectionView = {
   _id: string;
   name: string;
-  gradYear: number;
-  /** Derived on the server so the card matches the rest of the app. */
-  dpYear: string | null;
-  academicYear: string;
-  stage: "upcoming" | "DP1" | "DP2" | "graduated";
+  year: string;
+  dpYear: string;
   teachers: TeacherOption[];
-};
-
-const STAGE_BADGE: Record<SectionView["stage"], string> = {
-  upcoming: "badge-neutral",
-  DP1: "badge-approved",
-  DP2: "badge-approved",
-  graduated: "badge-neutral",
-};
-
-const STAGE_LABEL: Record<SectionView["stage"], string> = {
-  upcoming: "Upcoming",
-  DP1: "DP1",
-  DP2: "DP2",
-  graduated: "Graduated",
 };
 
 export function SectionCard({
   section,
   teachers,
   studentCount,
+  years,
 }: {
   section: SectionView;
   teachers: TeacherOption[];
   studentCount: number;
+  years: string[];
 }) {
   const router = useRouter();
   const [assigned, setAssigned] = useState(section.teachers.map((t) => t._id));
-  const [gradYear, setGradYear] = useState(String(section.gradYear));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const teachersDirty =
+  const dirty =
     assigned.length !== section.teachers.length ||
     assigned.some((id) => !section.teachers.some((t) => t._id === id));
-  const gradYearDirty = gradYear !== String(section.gradYear);
 
-  async function patch(body: unknown, fail: string) {
+  async function saveTeachers() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/admin/sections/${section._id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teachers: assigned }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? "Could not save.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function saveField(body: unknown, fail: string) {
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/admin/sections/${section._id}`, {
@@ -65,11 +66,15 @@ export function SectionCard({
     setBusy(false);
     if (!res.ok) {
       setError(data.error ?? fail);
-      return false;
+      return;
     }
     router.refresh();
-    return true;
   }
+
+  const saveDpYear = (value: string) =>
+    saveField({ dpYear: value }, "Could not change the DP year.");
+  const saveYear = (value: string) =>
+    saveField({ year: value }, "Could not change the year.");
 
   async function remove() {
     setBusy(true);
@@ -93,11 +98,9 @@ export function SectionCard({
         <div>
           <h2 className="flex items-center gap-2 font-bold">
             {section.name}
-            <span className={`badge ${STAGE_BADGE[section.stage]}`}>
-              {STAGE_LABEL[section.stage]}
-            </span>
+            <span className="badge badge-approved">{section.dpYear}</span>
           </h2>
-          <p className="hint">{section.academicYear}</p>
+          <p className="hint">{section.year}</p>
         </div>
         <Link
           href={`/teacher?section=${section._id}`}
@@ -107,38 +110,48 @@ export function SectionCard({
         </Link>
       </div>
 
-      <div>
-        <label className="label" htmlFor={`grad-${section._id}`}>
-          Graduating year
-        </label>
-        <div className="flex items-center gap-2">
-          <input
-            id={`grad-${section._id}`}
-            type="number"
-            className="input w-32"
-            value={gradYear}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="label" htmlFor={`dp-${section._id}`}>
+            DP year
+          </label>
+          <select
+            id={`dp-${section._id}`}
+            className="select"
+            value={section.dpYear}
             disabled={busy}
-            onChange={(e) => setGradYear(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            disabled={busy || !gradYearDirty || !gradYear}
-            onClick={() =>
-              void patch(
-                { gradYear: Number(gradYear) },
-                "Could not change the graduating year.",
-              )
-            }
+            onChange={(e) => void saveDpYear(e.target.value)}
           >
-            Save year
-          </button>
+            {DP_YEARS.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
         </div>
-        <p className="hint mt-1">
-          The class finishes DP2 in {gradYear || "—"}. DP1/DP2 and the academic
-          year follow from this automatically.
-        </p>
+
+        <div>
+          <label className="label" htmlFor={`year-${section._id}`}>
+            Academic year
+          </label>
+          <select
+            id={`year-${section._id}`}
+            className="select"
+            value={section.year}
+            disabled={busy}
+            onChange={(e) => void saveYear(e.target.value)}
+          >
+            {(years.includes(section.year) ? years : [section.year, ...years]).map(
+              (option) => (
+                <option key={option}>{option}</option>
+              ),
+            )}
+          </select>
+        </div>
       </div>
+      <p className="hint">
+        Moving a student into this section labels their new work {section.dpYear}.
+        Promotion rolls the receiving DP2 section forward a year automatically;
+        change a DP1 section&apos;s year here when the new class arrives.
+      </p>
 
       <div>
         <span className="label">Teachers who review this section</span>
@@ -195,10 +208,8 @@ export function SectionCard({
         <button
           type="button"
           className="btn btn-primary btn-sm"
-          onClick={() =>
-            void patch({ teachers: assigned }, "Could not save.")
-          }
-          disabled={busy || !teachersDirty}
+          onClick={saveTeachers}
+          disabled={busy || !dirty}
         >
           {busy ? "Saving…" : "Save teachers"}
         </button>
