@@ -6,14 +6,15 @@ import { Section } from "@/models/Section";
 import { User } from "@/models/User";
 import { Experience } from "@/models/Experience";
 import { firstIssue } from "@/lib/validation";
-import { DP_YEARS } from "@/lib/constants";
+import { academicYearLabel } from "@/lib/cohort";
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/);
 
 const schema = z.object({
   name: z.string().trim().min(1).optional(),
-  year: z.string().trim().min(4).optional(),
-  dpYear: z.enum(DP_YEARS).optional(),
+  // The graduating year is the one knob; DP year and academic year derive from
+  // it. Bounds keep an obvious typo from creating a nonsense cohort.
+  gradYear: z.number().int().min(2000).max(2100).optional(),
   teachers: z.array(objectId).optional(),
 });
 
@@ -36,7 +37,14 @@ export async function PATCH(
 
   const previousTeachers = (before.teachers ?? []).map(String);
 
-  const section = await Section.findByIdAndUpdate(id, parsed.data, { new: true });
+  // Keep the legacy `year` key (which the unique index rides on) in step with
+  // any change to the graduating year.
+  const update: Record<string, unknown> = { ...parsed.data };
+  if (parsed.data.gradYear !== undefined) {
+    update.year = academicYearLabel(parsed.data.gradYear - 2);
+  }
+
+  const section = await Section.findByIdAndUpdate(id, update, { new: true });
   if (!section) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   // Mirror the assignment onto the teachers themselves, so the Section column

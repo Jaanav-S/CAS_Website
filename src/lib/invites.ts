@@ -3,7 +3,11 @@ import mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { Invite, inviteState, seatsLeft, type InviteDoc } from "@/models/Invite";
 import { Section, type SectionDoc } from "@/models/Section";
+import { sectionLabel } from "@/lib/cohort";
 import type { Role } from "@/lib/constants";
+
+/** Fields to pull whenever an invite's section is shown as a label. */
+const SECTION_LABEL_FIELDS = "name year dpYear gradYear";
 
 export const INVITE_COOKIE = "cas_invite";
 
@@ -32,7 +36,13 @@ export function inviteUrl(origin: string, token: string): string {
 }
 
 type Populated = Omit<InviteDoc, "section"> & {
-  section?: { _id: unknown; name: string; year: string } | null;
+  section?: {
+    _id: unknown;
+    name: string;
+    year?: string;
+    dpYear?: string;
+    gradYear?: number;
+  } | null;
 };
 
 export function summarise(invite: Populated, origin: string): InviteSummary {
@@ -42,9 +52,7 @@ export function summarise(invite: Populated, origin: string): InviteSummary {
     url: inviteUrl(origin, invite.token),
     role: invite.role,
     label: invite.label ?? "",
-    sectionName: invite.section
-      ? `${invite.section.name} · ${invite.section.year}`
-      : null,
+    sectionName: invite.section ? sectionLabel(invite.section) : null,
     sectionId: invite.section ? String(invite.section._id) : null,
     capacity: invite.capacity,
     used: invite.usedBy.length,
@@ -63,7 +71,7 @@ export function summarise(invite: Populated, origin: string): InviteSummary {
 export async function allInvites(origin: string): Promise<InviteSummary[]> {
   await dbConnect();
   const docs = await Invite.find()
-    .populate("section", "name year")
+    .populate("section", SECTION_LABEL_FIELDS)
     .sort({ createdAt: -1 })
     .limit(200)
     .lean();
@@ -78,7 +86,7 @@ export async function invitesForSections(
   await dbConnect();
   if (sectionIds.length === 0) return [];
   const docs = await Invite.find({ section: { $in: sectionIds }, revoked: false })
-    .populate("section", "name year")
+    .populate("section", SECTION_LABEL_FIELDS)
     .sort({ createdAt: -1 })
     .lean();
   return (docs as unknown as Populated[]).map((d) => summarise(d, origin));
@@ -118,7 +126,7 @@ export async function findClaimable(token: string): Promise<
       id: String(doc._id),
       role: doc.role,
       section: doc.section ?? null,
-      sectionName: section ? `${section.name} · ${section.year}` : null,
+      sectionName: section ? sectionLabel(section) : null,
       label: doc.label ?? "",
       left: seatsLeft(doc),
     },

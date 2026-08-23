@@ -32,8 +32,8 @@ export default async function AdminUsersPage(props: PageProps<"/admin/users">) {
       .limit(500)
       .lean(),
     Section.find()
-      .select("name year dpYear")
-      .sort({ dpYear: 1, year: -1, name: 1 })
+      .select("name year dpYear gradYear")
+      .sort({ gradYear: -1, name: 1 })
       .lean(),
   ]);
 

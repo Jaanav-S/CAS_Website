@@ -4,16 +4,32 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MultiSelect } from "@/components/MultiSelect";
-import { DP_YEARS } from "@/lib/constants";
 
 export type TeacherOption = { _id: string; name: string; email: string };
 
 export type SectionView = {
   _id: string;
   name: string;
-  year: string;
-  dpYear: string;
+  gradYear: number;
+  /** Derived on the server so the card matches the rest of the app. */
+  dpYear: string | null;
+  academicYear: string;
+  stage: "upcoming" | "DP1" | "DP2" | "graduated";
   teachers: TeacherOption[];
+};
+
+const STAGE_BADGE: Record<SectionView["stage"], string> = {
+  upcoming: "badge-neutral",
+  DP1: "badge-approved",
+  DP2: "badge-approved",
+  graduated: "badge-neutral",
+};
+
+const STAGE_LABEL: Record<SectionView["stage"], string> = {
+  upcoming: "Upcoming",
+  DP1: "DP1",
+  DP2: "DP2",
+  graduated: "Graduated",
 };
 
 export function SectionCard({
@@ -27,46 +43,32 @@ export function SectionCard({
 }) {
   const router = useRouter();
   const [assigned, setAssigned] = useState(section.teachers.map((t) => t._id));
+  const [gradYear, setGradYear] = useState(String(section.gradYear));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const dirty =
+  const teachersDirty =
     assigned.length !== section.teachers.length ||
     assigned.some((id) => !section.teachers.some((t) => t._id === id));
+  const gradYearDirty = gradYear !== String(section.gradYear);
 
-  async function saveTeachers() {
+  async function patch(body: unknown, fail: string) {
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/admin/sections/${section._id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teachers: assigned }),
+      body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) {
-      setError(data.error ?? "Could not save.");
-      return;
+      setError(data.error ?? fail);
+      return false;
     }
     router.refresh();
-  }
-
-  async function saveDpYear(value: string) {
-    setBusy(true);
-    setError(null);
-    const res = await fetch(`/api/admin/sections/${section._id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dpYear: value }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy(false);
-    if (!res.ok) {
-      setError(data.error ?? "Could not change the DP year.");
-      return;
-    }
-    router.refresh();
+    return true;
   }
 
   async function remove() {
@@ -91,9 +93,11 @@ export function SectionCard({
         <div>
           <h2 className="flex items-center gap-2 font-bold">
             {section.name}
-            <span className="badge badge-approved">{section.dpYear}</span>
+            <span className={`badge ${STAGE_BADGE[section.stage]}`}>
+              {STAGE_LABEL[section.stage]}
+            </span>
           </h2>
-          <p className="hint">{section.year}</p>
+          <p className="hint">{section.academicYear}</p>
         </div>
         <Link
           href={`/teacher?section=${section._id}`}
@@ -104,22 +108,35 @@ export function SectionCard({
       </div>
 
       <div>
-        <label className="label" htmlFor={`dp-${section._id}`}>
-          DP year
+        <label className="label" htmlFor={`grad-${section._id}`}>
+          Graduating year
         </label>
-        <select
-          id={`dp-${section._id}`}
-          className="select"
-          value={section.dpYear}
-          disabled={busy}
-          onChange={(e) => void saveDpYear(e.target.value)}
-        >
-          {DP_YEARS.map((option) => (
-            <option key={option}>{option}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <input
+            id={`grad-${section._id}`}
+            type="number"
+            className="input w-32"
+            value={gradYear}
+            disabled={busy}
+            onChange={(e) => setGradYear(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={busy || !gradYearDirty || !gradYear}
+            onClick={() =>
+              void patch(
+                { gradYear: Number(gradYear) },
+                "Could not change the graduating year.",
+              )
+            }
+          >
+            Save year
+          </button>
+        </div>
         <p className="hint mt-1">
-          Moving a student into this section labels their new work {section.dpYear}.
+          The class finishes DP2 in {gradYear || "—"}. DP1/DP2 and the academic
+          year follow from this automatically.
         </p>
       </div>
 
@@ -178,8 +195,10 @@ export function SectionCard({
         <button
           type="button"
           className="btn btn-primary btn-sm"
-          onClick={saveTeachers}
-          disabled={busy || !dirty}
+          onClick={() =>
+            void patch({ teachers: assigned }, "Could not save.")
+          }
+          disabled={busy || !teachersDirty}
         >
           {busy ? "Saving…" : "Save teachers"}
         </button>

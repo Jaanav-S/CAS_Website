@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { MultiSelect } from "@/components/MultiSelect";
+import { useState } from "react";
 import type { PromotionOverview } from "@/lib/promotion";
 
 /**
- * End-of-year housekeeping in one place: graduate the leaving DP2 cohort, then
- * spread the DP1 cohort across next year's DP2 sections.
+ * End-of-year housekeeping. DP1 → DP2 happens on its own when the academic year
+ * rolls over, so the only deliberate step left is graduating the leaving DP2
+ * cohort.
  */
 export function PromotionPanel({ data }: { data: PromotionOverview }) {
   const router = useRouter();
@@ -15,62 +15,31 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
-  const [confirmingGraduate, setConfirmingGraduate] = useState(false);
-  /** Set once students have been promoted, because they then show up in the
-   *  graduating list too and must not be swept up by a second click. */
-  const [justPromoted, setJustPromoted] = useState(0);
+  const [confirming, setConfirming] = useState(false);
 
-  // sectionId -> student ids chosen for it
-  const [picks, setPicks] = useState<Record<string, string[]>>({});
-
-  const chosen = useMemo(
-    () => new Set(Object.values(picks).flat()),
-    [picks],
-  );
-  const totalPicked = chosen.size;
-
-  async function post(body: unknown, success: (r: Record<string, number>) => string) {
+  async function graduate() {
     setBusy(true);
     setError(null);
     setDone(null);
     const res = await fetch("/api/admin/promote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        action: "graduate",
+        studentIds: data.graduating.map((s) => s.id),
+      }),
     });
     const json = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) {
       setError(json.error ?? "That did not work.");
-      return false;
+      return;
     }
-    setDone(success(json));
+    setDone(
+      `${json.graduated} student${json.graduated === 1 ? "" : "s"} graduated.`,
+    );
+    setConfirming(false);
     router.refresh();
-    return true;
-  }
-
-  async function graduate() {
-    const ok = await post(
-      { action: "graduate", studentIds: data.graduating.map((s) => s.id) },
-      (r) => `${r.graduated} student${r.graduated === 1 ? "" : "s"} graduated.`,
-    );
-    if (ok) setConfirmingGraduate(false);
-  }
-
-  async function assign() {
-    const assignments = Object.entries(picks)
-      .filter(([, ids]) => ids.length > 0)
-      .map(([sectionId, studentIds]) => ({ sectionId, studentIds }));
-    if (assignments.length === 0) return;
-
-    const ok = await post(
-      { action: "assign", assignments },
-      (r) => `${r.moved} student${r.moved === 1 ? "" : "s"} moved up to DP2.`,
-    );
-    if (ok) {
-      setPicks({});
-      setJustPromoted(assignments.reduce((n, a) => n + a.studentIds.length, 0));
-    }
   }
 
   if (!open) {
@@ -79,8 +48,8 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
         <div className="min-w-56 flex-1">
           <p className="font-bold">End of year</p>
           <p className="hint mt-0.5">
-            Graduate the leaving DP2 cohort and move this year&apos;s DP1
-            students into their new sections.
+            Graduate the leaving DP2 cohort. This year&apos;s DP1 students move
+            up to DP2 automatically when the new year begins.
           </p>
         </div>
         <button
@@ -98,10 +67,11 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
     <div className="card space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold">End-of-year promotion</h2>
+          <h2 className="text-lg font-bold">End-of-year graduation</h2>
           <p className="hint mt-0.5">
-            Graduate first, then move DP1 up — otherwise the students you just
-            promoted would be graduated along with the leavers.
+            DP1 → DP2 is automatic — a section carries its students forward and
+            becomes DP2 on its own. All that is left is to graduate the cohort
+            that has finished DP2.
           </p>
         </div>
         <button
@@ -124,12 +94,8 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
         </p>
       )}
 
-      {/* ---------------- step 1 ---------------- */}
       <section className="rounded-xl border p-5">
-        <div className="flex flex-wrap items-baseline gap-2">
-          <span className="badge badge-neutral">Step 1</span>
-          <h3 className="font-bold">Graduate the DP2 batch</h3>
-        </div>
+        <h3 className="font-bold">Graduate the DP2 batch</h3>
 
         {data.graduating.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
@@ -153,16 +119,8 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
               ))}
             </ul>
 
-            {justPromoted > 0 && (
-              <p className="mt-3 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
-                You have just moved {justPromoted} student
-                {justPromoted === 1 ? "" : "s"} into DP2, so they now appear in
-                this list. Read the names above before graduating anyone.
-              </p>
-            )}
-
             <div className="mt-4">
-              {confirmingGraduate ? (
+              {confirming ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold text-danger">
                     Graduate all {data.graduating.length}?
@@ -178,7 +136,7 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
-                    onClick={() => setConfirmingGraduate(false)}
+                    onClick={() => setConfirming(false)}
                     disabled={busy}
                   >
                     Cancel
@@ -188,7 +146,7 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => setConfirmingGraduate(true)}
+                  onClick={() => setConfirming(true)}
                   disabled={busy}
                 >
                   Graduate {data.graduating.length} student
@@ -197,103 +155,6 @@ export function PromotionPanel({ data }: { data: PromotionOverview }) {
               )}
               <p className="hint mt-2">
                 Reversible one at a time from Users → Un-graduate.
-              </p>
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* ---------------- step 2 ---------------- */}
-      <section className="rounded-xl border p-5">
-        <div className="flex flex-wrap items-baseline gap-2">
-          <span className="badge badge-neutral">Step 2</span>
-          <h3 className="font-bold">Move DP1 into their DP2 sections</h3>
-        </div>
-
-        {data.dp2Sections.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">
-            Create a DP2 section first — there is nowhere to move anybody to.
-          </p>
-        ) : data.dp1Students.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">
-            Every DP1 student has already been moved up.
-          </p>
-        ) : (
-          <>
-            <p className="mt-3 text-sm">
-              <strong>{data.dp1Students.length}</strong> DP1 student
-              {data.dp1Students.length === 1 ? "" : "s"} still to place. Each
-              name disappears from the other lists once you pick it.
-            </p>
-
-            <div className="mt-4 space-y-4">
-              {data.dp2Sections.map((section) => {
-                const mine = picks[section.id] ?? [];
-                // Only DP1 students nobody else has claimed yet.
-                const available = data.dp1Students.filter(
-                  (s) => !chosen.has(s.id) || mine.includes(s.id),
-                );
-
-                return (
-                  <div key={section.id} className="grid gap-2 sm:grid-cols-[14rem_1fr] sm:gap-4">
-                    <div className="sm:pt-2">
-                      <p className="font-semibold">{section.name}</p>
-                      <p className="hint">
-                        {section.year}
-                        {section.teachers.length > 0
-                          ? ` · ${section.teachers.join(", ")}`
-                          : " · no teacher assigned"}
-                      </p>
-                    </div>
-                    <div>
-                      <MultiSelect
-                        placeholder="Select students"
-                        ariaLabel={`Students moving into ${section.name}`}
-                        allowCheckAll={false}
-                        options={available.map((s) => ({
-                          value: s.id,
-                          label: `${s.name} (${s.section})`,
-                        }))}
-                        value={mine}
-                        onChange={(ids) =>
-                          setPicks((p) => ({ ...p, [section.id]: ids }))
-                        }
-                      />
-                      {mine.length > 0 && (
-                        <p className="hint mt-1">
-                          {mine.length} student{mine.length === 1 ? "" : "s"} selected
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center gap-3 border-t pt-4">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={assign}
-                disabled={busy || totalPicked === 0}
-              >
-                {busy
-                  ? "Moving…"
-                  : `Move ${totalPicked} student${totalPicked === 1 ? "" : "s"} up`}
-              </button>
-              {totalPicked > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setPicks({})}
-                  disabled={busy}
-                >
-                  Clear selection
-                </button>
-              )}
-              <p className="hint">
-                Approved DP1 experiences stay with the DP1 class; unfinished work
-                follows the student.
               </p>
             </div>
           </>

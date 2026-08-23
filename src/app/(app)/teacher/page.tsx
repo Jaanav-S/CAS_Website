@@ -11,6 +11,7 @@ import { StatCard } from "@/components/StatCard";
 import { InviteList } from "@/components/InviteList";
 import { invitesForSections } from "@/lib/invites";
 import { appOrigin } from "@/lib/appUrl";
+import { describeSection, sectionGradYear } from "@/lib/cohort";
 
 export const metadata = { title: "Class overview" };
 
@@ -26,9 +27,19 @@ export default async function TeacherPage(props: PageProps<"/teacher">) {
       : await teacherSectionIds(user.id);
 
   const sections = await Section.find({ _id: { $in: sectionIds } })
-    .select("name year")
-    .sort({ year: -1, name: 1 })
-    .lean<{ _id: mongoose.Types.ObjectId; name: string; year: string }[]>();
+    .select("name year dpYear gradYear")
+    .lean<
+      {
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        year?: string;
+        dpYear?: string;
+        gradYear?: number;
+      }[]
+    >();
+  sections.sort(
+    (a, b) => sectionGradYear(b) - sectionGradYear(a) || a.name.localeCompare(b.name),
+  );
 
   const params = await props.searchParams;
   const selected =
@@ -79,7 +90,7 @@ export default async function TeacherPage(props: PageProps<"/teacher">) {
                 selected === String(section._id) ? "badge-approved" : "badge-neutral"
               }`}
             >
-              {section.name} · {section.year}
+              {section.name} · {describeSection(section).academicYear}
             </Link>
           ))}
         </div>

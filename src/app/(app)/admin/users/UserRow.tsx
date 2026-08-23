@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ROLES, ROLE_LABELS, type AccountStatus, type Role } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
+import { sectionLabel } from "@/lib/cohort";
 
 export type AdminUser = {
   _id: string;
@@ -20,8 +21,9 @@ export type AdminUser = {
 export type SectionOption = {
   _id: string;
   name: string;
-  year: string;
-  dpYear: string;
+  year?: string;
+  dpYear?: string;
+  gradYear?: number;
 };
 
 export function UserRow({
@@ -128,7 +130,7 @@ export function UserRow({
           <option value="">No section</option>
           {sections.map((section) => (
             <option key={section._id} value={section._id}>
-              {section.name} · {section.year} ({section.dpYear})
+              {sectionLabel(section)}
             </option>
           ))}
         </select>

@@ -1,5 +1,6 @@
 import { PROJECT_STAGES } from "@/lib/constants";
 import { formatDate, formatDateTime, formatRange } from "@/lib/format";
+import { sectionLabel } from "@/lib/cohort";
 
 export type ProjectApprovalView = {
   status: "pending" | "approved" | "rejected";
@@ -34,7 +35,12 @@ export type ProjectView = {
   owner: { _id: string; name: string; email: string };
   members: { _id: string; name: string; email: string }[];
   casSupervisor?: { _id: string; name: string } | null;
-  section?: { name: string; year: string } | null;
+  section?: {
+    name: string;
+    year?: string;
+    dpYear?: string;
+    gradYear?: number;
+  } | null;
   teacherApproval: ProjectApprovalView;
   supervisorApproval: ProjectApprovalView;
   completion?: {
@@ -129,7 +135,7 @@ export function ProjectDetail({ project }: { project: ProjectView }) {
           <Fact label="Strands" value={project.strands.join(", ") || "—"} />
           <Fact
             label="Section"
-            value={project.section ? `${project.section.name} · ${project.section.year}` : "—"}
+            value={project.section ? sectionLabel(project.section) : "—"}
           />
           <Fact
             label="External supervisor"

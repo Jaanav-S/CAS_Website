@@ -7,6 +7,7 @@ import { Section } from "@/models/Section";
 import { User } from "@/models/User";
 import { plain } from "@/lib/serialize";
 import { discoveryFeed, discoveryFilterOptions } from "@/lib/discovery";
+import { sectionLabel, sectionGradYear } from "@/lib/cohort";
 import { formatDate } from "@/lib/format";
 import { DiscoveryFilters, type FilterOption } from "./DiscoveryFilters";
 
@@ -23,19 +24,28 @@ export default async function DiscoveryPage(props: PageProps<"/discovery">) {
 
   const [sectionDocs, studentDocs] = await Promise.all([
     Section.find({ _id: { $in: sectionIds } })
-      .select("name year dpYear")
-      .sort({ dpYear: 1, year: -1, name: 1 })
-      .lean<{ _id: unknown; name: string; year: string; dpYear: string }[]>(),
+      .select("name year dpYear gradYear")
+      .lean<
+        {
+          _id: unknown;
+          name: string;
+          year?: string;
+          dpYear?: string;
+          gradYear?: number;
+        }[]
+      >(),
     User.find({ _id: { $in: studentIds } })
       .select("name")
       .sort({ name: 1 })
       .lean<{ _id: unknown; name: string }[]>(),
   ]);
 
-  const sections: FilterOption[] = sectionDocs.map((s) => ({
-    value: String(s._id),
-    label: `${s.name} · ${s.year} (${s.dpYear})`,
-  }));
+  const sections: FilterOption[] = sectionDocs
+    .sort((a, b) => sectionGradYear(b) - sectionGradYear(a) || a.name.localeCompare(b.name))
+    .map((s) => ({
+      value: String(s._id),
+      label: sectionLabel(s),
+    }));
   const students: FilterOption[] = studentDocs.map((s) => ({
     value: String(s._id),
     label: s.name,

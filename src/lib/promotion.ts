@@ -3,6 +3,7 @@ import { dbConnect } from "@/lib/db";
 import { Experience } from "@/models/Experience";
 import { Section, type SectionDoc } from "@/models/Section";
 import { User, type UserDoc } from "@/models/User";
+import { describeSection } from "@/lib/cohort";
 
 /** Work that still needs a teacher, and so follows a student when they move. */
 const IN_FLIGHT = ["draft", "pending", "rejected"] as const;
@@ -34,72 +35,46 @@ export async function moveStudentToSection(
 
   await Experience.updateMany(
     { student: student._id, status: { $in: [...IN_FLIGHT] } },
-    { section: sectionId, dpYear: target?.dpYear ?? null },
+    { section: sectionId, dpYear: target ? describeSection(target).dpYear : null },
   );
 }
 
 export type PromotionOverview = {
-  dp2Sections: { id: string; name: string; year: string; teachers: string[] }[];
-  /** Approved, not-yet-graduated students currently sitting in a DP2 section. */
+  /**
+   * Approved, not-yet-graduated students whose section is in its DP2 year — the
+   * cohort that is finishing and can be graduated. Moving DP1 up to DP2 no
+   * longer needs a step: a section becomes DP2 on its own when the year rolls.
+   */
   graduating: { id: string; name: string; section: string }[];
-  /** Approved DP1 students who have not been moved up yet. */
-  dp1Students: { id: string; name: string; section: string }[];
 };
 
-/** Everything the end-of-year panel needs, in three queries. */
+/** Everything the end-of-year panel needs. */
 export async function promotionOverview(): Promise<PromotionOverview> {
   await dbConnect();
 
-  const sections = await Section.find()
-    .populate<{ teachers: { name: string }[] }>("teachers", "name")
-    .sort({ year: -1, name: 1 })
-    .lean();
-
+  const sections = await Section.find().lean();
   const byId = new Map(sections.map((s) => [String(s._id), s]));
-  const dp1Ids = sections.filter((s) => s.dpYear === "DP1").map((s) => s._id);
-  const dp2Ids = sections.filter((s) => s.dpYear === "DP2").map((s) => s._id);
+  const dp2Ids = sections
+    .filter((s) => describeSection(s).stage === "DP2")
+    .map((s) => s._id);
 
-  const [dp2Members, dp1Members] = await Promise.all([
-    User.find({
-      role: "student",
-      status: "approved",
-      graduated: { $ne: true },
-      section: { $in: dp2Ids },
-    })
-      .select("name section")
-      .sort({ name: 1 })
-      .lean<{ _id: unknown; name: string; section: unknown }[]>(),
-    User.find({
-      role: "student",
-      status: "approved",
-      graduated: { $ne: true },
-      section: { $in: dp1Ids },
-    })
-      .select("name section")
-      .sort({ name: 1 })
-      .lean<{ _id: unknown; name: string; section: unknown }[]>(),
-  ]);
+  const dp2Members = await User.find({
+    role: "student",
+    status: "approved",
+    graduated: { $ne: true },
+    section: { $in: dp2Ids },
+  })
+    .select("name section")
+    .sort({ name: 1 })
+    .lean<{ _id: unknown; name: string; section: unknown }[]>();
 
   const label = (id: unknown) => {
     const s = byId.get(String(id));
-    return s ? `${s.name} · ${s.year}` : "No section";
+    return s ? `${s.name} · ${describeSection(s).academicYear}` : "No section";
   };
 
   return {
-    dp2Sections: sections
-      .filter((s) => s.dpYear === "DP2")
-      .map((s) => ({
-        id: String(s._id),
-        name: s.name,
-        year: s.year,
-        teachers: (s.teachers ?? []).map((t) => t.name),
-      })),
     graduating: dp2Members.map((u) => ({
-      id: String(u._id),
-      name: u.name,
-      section: label(u.section),
-    })),
-    dp1Students: dp1Members.map((u) => ({
       id: String(u._id),
       name: u.name,
       section: label(u.section),
