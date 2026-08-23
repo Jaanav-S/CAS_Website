@@ -91,7 +91,7 @@ export const ROLE_LABELS: Record<string, string> = {
   student: "Student",
   teacher: "Teacher",
   supervisor: "CAS supervisor",
-  coordinator: "CAS coordinator",
+  coordinator: "CAS Coordinator",
   admin: "Admin",
 };
 export type Role = (typeof ROLES)[number];

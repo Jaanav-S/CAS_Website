@@ -41,7 +41,7 @@ export function ProjectRow({ project }: { project: ProjectListItem }) {
                   Teacher · finished
                 </span>
                 <span className={`badge ${PIP[project.completion.supervisor.status]}`}>
-                  Supervisor · finished
+                  CAS Coordinator · finished
                 </span>
                 {project.completion.status === "approved" && (
                   <span className="badge badge-approved">Published</span>
@@ -53,7 +53,7 @@ export function ProjectRow({ project }: { project: ProjectListItem }) {
                   Teacher
                 </span>
                 <span className={`badge ${PIP[project.supervisorApproval.status]}`}>
-                  Supervisor
+                  CAS Coordinator
                 </span>
               </>
             )}

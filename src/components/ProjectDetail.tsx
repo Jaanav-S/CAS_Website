@@ -86,7 +86,7 @@ export function ApprovalPips({ project }: { project: ProjectView }) {
           To start
         </span>
         <Pip label="Teacher" approval={project.teacherApproval} />
-        <Pip label="CAS coordinator" approval={project.supervisorApproval} />
+        <Pip label="CAS Coordinator" approval={project.supervisorApproval} />
       </div>
 
       {stage !== "none" && project.completion && (
@@ -95,7 +95,7 @@ export function ApprovalPips({ project }: { project: ProjectView }) {
             Finished
           </span>
           <Pip label="Teacher" approval={project.completion.teacher} />
-          <Pip label="CAS coordinator" approval={project.completion.supervisor} />
+          <Pip label="CAS Coordinator" approval={project.completion.supervisor} />
           {stage === "approved" && (
             <span className="badge badge-approved">Published on Discovery</span>
           )}
@@ -125,7 +125,7 @@ export function ProjectDetail({ project }: { project: ProjectView }) {
                 : "—"
             }
           />
-          <Fact label="CAS supervisor" value={project.casSupervisor?.name ?? "—"} />
+          <Fact label="CAS Coordinator" value={project.casSupervisor?.name ?? "—"} />
           <Fact label="Strands" value={project.strands.join(", ") || "—"} />
           <Fact
             label="Section"
@@ -269,12 +269,12 @@ export function ProjectDetail({ project }: { project: ProjectView }) {
 function feedback(project: ProjectView): [string, ProjectApprovalView][] {
   const rows: [string, ProjectApprovalView][] = [
     ["Teacher", project.teacherApproval],
-    ["CAS coordinator", project.supervisorApproval],
+    ["CAS Coordinator", project.supervisorApproval],
   ];
   if (project.completion && project.completion.status !== "none") {
     rows.push(
       ["Teacher (on completion)", project.completion.teacher],
-      ["CAS coordinator (on completion)", project.completion.supervisor],
+      ["CAS Coordinator (on completion)", project.completion.supervisor],
     );
   }
   return rows.filter(([, a]) => a?.comment);
