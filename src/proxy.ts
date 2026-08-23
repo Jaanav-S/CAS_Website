@@ -25,5 +25,9 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Skip Next internals and any request for a static file (anything with a
+  // file extension, e.g. /logo-wordmark.png). Without the extension exclusion
+  // the gate would redirect signed-out asset requests to /login, which is why
+  // the logo appeared broken on the login and join pages.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.[\\w]+$).*)"],
 };
