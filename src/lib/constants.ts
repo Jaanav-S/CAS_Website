@@ -61,7 +61,7 @@ export const LEARNER_PROFILE = [
   "Reflective",
 ] as const;
 
-export const TERMS = ["Term 1", "Term 2", "Term 3"] as const;
+export const TERMS = ["Term 1", "Term 2"] as const;
 
 /**
  * Which year of the Diploma Programme a section belongs to. A student moves

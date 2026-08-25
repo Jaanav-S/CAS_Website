@@ -34,6 +34,9 @@ export default async function AdminSectionsPage() {
   const counts = new Map(memberCounts.map((row) => [String(row._id), row.count]));
   const sections = plain(sectionDocs as unknown as SectionView[]);
   const teachers = plain(teacherDocs as unknown as TeacherOption[]);
+  // Sections are only ever created for the current year onward, so drop the
+  // past academic year that academicYears() offers first.
+  const sectionYears = academicYears().slice(1);
 
   return (
     <div className="space-y-6">
@@ -46,7 +49,7 @@ export default async function AdminSectionsPage() {
 
       <PromotionPanel data={promotion} />
 
-      <CreateSection years={academicYears()} />
+      <CreateSection years={sectionYears} />
 
       {sections.length === 0 ? (
         <div className="card p-10 text-center text-sm text-muted">
@@ -60,7 +63,7 @@ export default async function AdminSectionsPage() {
               section={section}
               teachers={teachers}
               studentCount={counts.get(section._id) ?? 0}
-              years={academicYears()}
+              years={sectionYears}
             />
           ))}
         </div>

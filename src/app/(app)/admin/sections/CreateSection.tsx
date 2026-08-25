@@ -7,7 +7,7 @@ import { DP_YEARS } from "@/lib/constants";
 export function CreateSection({ years }: { years: string[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [year, setYear] = useState(years[1] ?? years[0] ?? "");
+  const [year, setYear] = useState(years[0] ?? "");
   const [dpYear, setDpYear] = useState<string>(DP_YEARS[0]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
