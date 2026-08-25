@@ -37,13 +37,31 @@ export async function studentExperiences(
 
 export async function studentProgress(studentId: string): Promise<Progress> {
   await dbConnect();
-  const approved = await Experience.find({
-    student: studentId,
-    status: "approved",
-  })
-    .select("strands learningOutcomes")
-    .lean<{ strands: string[]; learningOutcomes: string[] }[]>();
-  return computeProgress(approved);
+  const { CasProject } = await import("@/models/CasProject");
+
+  const [approved, projects] = await Promise.all([
+    Experience.find({ student: studentId, status: "approved" })
+      .select("strands learningOutcomes")
+      .lean<{ strands: string[]; learningOutcomes: string[] }[]>(),
+    // A finished (published) CAS project the student owns or is a member of
+    // counts as one approved experience, contributing its strands to the
+    // baskets. Projects carry no individual learning outcomes.
+    CasProject.find({
+      $or: [{ owner: studentId }, { members: studentId }],
+      "completion.status": "approved",
+    })
+      .select("strands")
+      .lean<{ strands: string[] }[]>(),
+  ]);
+
+  const items = [
+    ...approved,
+    ...projects.map((p) => ({
+      strands: p.strands ?? [],
+      learningOutcomes: [] as string[],
+    })),
+  ];
+  return computeProgress(items);
 }
 
 /** Counts by review status for a set of students (or everyone). */

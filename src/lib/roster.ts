@@ -2,7 +2,8 @@ import type mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { User } from "@/models/User";
 import { Experience } from "@/models/Experience";
-import { computeProgress, type Progress } from "@/lib/progress";
+import { CasProject } from "@/models/CasProject";
+import { computeProgress, type Progress, type ProgressInput } from "@/lib/progress";
 
 export type RosterRow = {
   id: string;
@@ -67,15 +68,46 @@ export async function roster(
     else byStudent.set(key, [exp]);
   }
 
+  // Finished (published) CAS projects count as approved experiences too, for the
+  // owner and every member alike.
+  const studentIds = students.map((s) => s._id);
+  const projects = await CasProject.find({
+    $or: [{ owner: { $in: studentIds } }, { members: { $in: studentIds } }],
+    "completion.status": "approved",
+  })
+    .select("owner members strands")
+    .lean<
+      {
+        owner: mongoose.Types.ObjectId;
+        members: mongoose.Types.ObjectId[];
+        strands: string[];
+      }[]
+    >();
+
+  const projectsByStudent = new Map<string, ProgressInput[]>();
+  for (const p of projects) {
+    const item: ProgressInput = { strands: p.strands ?? [], learningOutcomes: [] };
+    const participants = new Set([String(p.owner), ...(p.members ?? []).map(String)]);
+    for (const sid of participants) {
+      const list = projectsByStudent.get(sid);
+      if (list) list.push(item);
+      else projectsByStudent.set(sid, [item]);
+    }
+  }
+
   return students.map((student) => {
     const own = byStudent.get(String(student._id)) ?? [];
+    const projectItems = projectsByStudent.get(String(student._id)) ?? [];
     return {
       id: String(student._id),
       name: student.name,
       email: student.email,
       image: student.image,
       sectionId: student.section ? String(student.section) : null,
-      progress: computeProgress(own.filter((e) => e.status === "approved")),
+      progress: computeProgress([
+        ...own.filter((e) => e.status === "approved"),
+        ...projectItems,
+      ]),
       pending: own.filter((e) => e.status === "pending").length,
       rejected: own.filter((e) => e.status === "rejected").length,
       drafts: own.filter((e) => e.status === "draft").length,

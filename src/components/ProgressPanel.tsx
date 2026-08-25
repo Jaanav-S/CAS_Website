@@ -32,7 +32,7 @@ export function ProgressPanel({
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
               <Check label={`${REQUIREMENTS.totalExperiences} experiences`} met={progress.totalMet} />
-              <Check label="All three strands" met={progress.strandsMet} />
+              <Check label="All three baskets" met={progress.strandsMet} />
               <Check
                 label={`Each LO ×${REQUIREMENTS.perLearningOutcome}`}
                 met={progress.outcomesMet}

@@ -134,7 +134,7 @@ export const REQUIREMENTS = {
   /** Total approved experiences needed. */
   totalExperiences: 8,
   /** Minimum approved experiences in each of Creativity / Activity / Service. */
-  perStrand: 1,
+  perStrand: 2,
   /** Each learning outcome must be evidenced at least this many times. */
   perLearningOutcome: 2,
 };
