@@ -81,7 +81,7 @@ export function MultiSelect({
         className="select flex items-center justify-between gap-2 text-left"
       >
         <span
-          className={`truncate ${value.length === 0 ? "italic text-muted" : ""}`}
+          className={`min-w-0 flex-1 truncate ${value.length === 0 ? "italic text-muted" : ""}`}
         >
           {summary}
         </span>

@@ -435,7 +435,7 @@ export function ExperienceForm({
           </Row>
 
           <Row label="Select the sustainability goals aligned with your CAS experience">
-            <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
               <MultiSelect
                 placeholder="Check sustainability"
                 ariaLabel="Sustainability goals aligned with your CAS experience"
@@ -730,12 +730,12 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-[minmax(0,20rem)_1fr] sm:gap-6">
+    <div className="grid gap-2 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] sm:gap-6">
       <label className="label sm:pt-2" htmlFor={htmlFor}>
         {label}
         {required && <span className="text-danger"> *</span>}
       </label>
-      <div>{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

@@ -71,7 +71,7 @@ export const TERMS = ["Term 1", "Term 2"] as const;
 export const DP_YEARS = ["DP1", "DP2"] as const;
 export type DpYear = (typeof DP_YEARS)[number];
 
-export const LOCATIONS = ["In-school", "Out-of-school", "Both"] as const;
+export const LOCATIONS = ["In-school", "Out-of-school"] as const;
 
 /** Status of the CAS experience itself (as opposed to its review status). */
 export const EXPERIENCE_STAGES = ["Planned", "Ongoing", "Completed"] as const;
